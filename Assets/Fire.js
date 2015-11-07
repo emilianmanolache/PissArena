@@ -10,7 +10,7 @@ function Update () {
     if(Input.GetButtonDown("Fire1") && pissSim.isStopped) {
         pissSim.Play();
     }
-    if(!Input.GetButton("Fire1") && pissSim.isPlaying) {
+    if(!Input.GetButton("Fire1")) {
         pissSim.Stop();
     }
 }
