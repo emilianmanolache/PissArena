@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Gizmo.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this simple gizmo script can be dragged onto gameobjects
 //					to visualize things like spawnpoints in the editor

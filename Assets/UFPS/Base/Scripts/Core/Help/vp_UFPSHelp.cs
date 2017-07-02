@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_UFPSHelp.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this class contains common UFPS help texts. TIP: it can be removed
 //					to automatically disable Inspector help texts for newer (1.4.7)

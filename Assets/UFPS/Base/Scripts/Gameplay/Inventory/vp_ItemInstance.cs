@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_ItemInstance.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this internal class is used to represent an item record inside
 //					the inventory. NOTE: it is not to be confused with the concept

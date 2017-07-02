@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_InputWindow.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	window for mapping controls
 //
@@ -29,56 +29,24 @@ public class vp_InputWindow : EditorWindow
 	protected static GUIStyle m_SmallButtonStyle = null;
 	protected Vector2 m_ScrollPosition = Vector2.zero;
 	protected static string[] m_ControlTypes = new string[2]{ "Keyboard And Mouse", "Joystick" };
-	
-	static public Texture2D blankTexture
-	{
-		get
-		{
-			return EditorGUIUtility.whiteTexture;
-		}
-	}
-	
-	public static GUIStyle SmallButtonStyle
-	{
-		get
-		{
-			if (m_SmallButtonStyle == null)
-			{
-				m_SmallButtonStyle = new GUIStyle("Button");
-				m_SmallButtonStyle.fontSize = 10;
-				m_SmallButtonStyle.alignment = TextAnchor.MiddleCenter;
-				m_SmallButtonStyle.margin.left = 1;
-				m_SmallButtonStyle.margin.right = 1;
-				m_SmallButtonStyle.padding = new RectOffset(0, 4, 0, 2);
-			}
-			return m_SmallButtonStyle;
-		}
-	}
+
+	static public Texture2D blankTexture	{	get	{		return EditorGUIUtility.whiteTexture;	}	}
 
 
-	public static GUIStyle HeaderStyleSelected
-	{
-		get
-		{
-			if (m_HeaderStyle == null)
-			{
-				m_HeaderStyle = new GUIStyle("Label");
-				m_HeaderStyle.fontSize = 12;
-				//m_HeaderStyle.fontStyle = FontStyle.Bold;
-				m_HeaderStyle.alignment = TextAnchor.MiddleLeft;
-				
-			}
-			return m_HeaderStyle;
-		}
-	}
-
-    public static void Init ()
+	/// <summary>
+	/// 
+	/// </summary>
+	public static void Init()
 	{
         // Get existing open window or if none, make a new one:
 		m_Window = (vp_InputWindow)EditorWindow.GetWindow(typeof(vp_InputWindow), false, "UFPS InputMgr");
 	}
-    
-    void OnFocus()
+
+
+	/// <summary>
+	/// 
+	/// </summary>
+	void OnFocus()
     {
     
     	// if application is not playing, find a vp_Input instance in resources
@@ -87,8 +55,16 @@ public class vp_InputWindow : EditorWindow
 		// if not found create it
 		if(go == null)
 		{
-			vp_Input.CreateIfNoExist();
+#if UNITY_EDITOR
+			vp_Input.CreateMissingInputPrefab(vp_Input.PrefabPath, vp_Input.FolderPath);
 			go = Resources.Load("Input/vp_Input") as GameObject;
+#endif
+			if (go == null)
+			{
+				Debug.LogError("Error (" + this + ") Failed to create input manager.");
+				return;
+			}
+
 		}
 		
 		m_Component = go.GetComponent<vp_Input>();
@@ -101,6 +77,7 @@ public class vp_InputWindow : EditorWindow
     
     }
     
+
     /// <summary>
 	/// 
 	/// </summary>
@@ -131,9 +108,15 @@ public class vp_InputWindow : EditorWindow
 		m_ScrollPosition = GUILayout.BeginScrollView(m_ScrollPosition);
 		GUILayout.Space(10);
 
-		DoButtonsFoldout();
-		DoAxisFoldout();
-		DoUnityAxis();
+		try
+		{
+			DoButtonsFoldout();
+			DoAxisFoldout();
+			DoUnityAxis();
+		}
+		catch
+		{
+		}
 
 		GUILayout.EndScrollView();
 
@@ -147,6 +130,7 @@ public class vp_InputWindow : EditorWindow
 
 	}
 	
+
 	/// <summary>
 	/// 
 	/// </summary>
@@ -161,7 +145,9 @@ public class vp_InputWindow : EditorWindow
 			EditorGUILayout.LabelField("Key");
 		}
 		GUILayout.EndHorizontal();
-		
+
+		if (m_Component.ButtonValues.Count >= m_Component.ButtonValues2.Count)
+			m_Component.CreateMissingSecondaryButtons();
 
 		if (m_ButtonsFoldout)
 		{
@@ -178,8 +164,14 @@ public class vp_InputWindow : EditorWindow
 					
 					m_Component.ButtonKeys[i] = EditorGUILayout.TextField(m_Component.ButtonKeys[i], GUILayout.MaxWidth(100), GUILayout.MinWidth(100));
 					GUILayout.Space(10);
+
+					// primary bindings
 					m_Component.ButtonValues[i] = (KeyCode)EditorGUILayout.EnumPopup(m_Component.ButtonValues[i]);
 					m_Component.Buttons[m_Component.ButtonKeys[i]] = (KeyCode)m_Component.ButtonValues[i];
+
+					// secondary bindings
+					m_Component.ButtonValues2[i] = (KeyCode)EditorGUILayout.EnumPopup(m_Component.ButtonValues2[i]);
+					m_Component.Buttons2[m_Component.ButtonKeys[i]] = (KeyCode)m_Component.ButtonValues2[i];
 
 					if (GUILayout.Button("Remove", vp_EditorGUIUtility.SmallButtonStyle, GUILayout.MinWidth(50), GUILayout.MaxWidth(50), GUILayout.MinHeight(15)))
 					{
@@ -187,6 +179,7 @@ public class vp_InputWindow : EditorWindow
 						m_Component.ButtonValues.RemoveAt(i);
 						--i;
 					}
+
 					GUI.backgroundColor = Color.white;
 					
 					GUILayout.Space(20);
@@ -194,6 +187,7 @@ public class vp_InputWindow : EditorWindow
 					GUILayout.EndHorizontal();
 					
 					GUILayout.Space(5);
+
 				}
 			}
 			
@@ -232,20 +226,23 @@ public class vp_InputWindow : EditorWindow
 		}
 		
 	}
-	
-	
+
+
+	/// <summary>
+	/// 
+	/// </summary>
 	public virtual void DoAxisFoldout()
 	{
 
 		GUILayout.Space(10);
 		GUILayout.BeginHorizontal(GUILayout.MaxWidth(210));
 		m_AxisFoldout = EditorGUILayout.Foldout(m_AxisFoldout, m_AxisFoldout && m_Component.AxisKeys.Count > 0 ? "Axis Name" : "Axes");
-		if(m_AxisFoldout && m_Component.AxisKeys.Count > 0)
+		if((m_Component.ControlType == 1) && m_AxisFoldout && m_Component.AxisKeys.Count > 0)
 		{
 			GUILayout.Space(80);
-			EditorGUILayout.LabelField("Positive Key", GUILayout.MinWidth(75));
-			GUILayout.Space(30);
-			EditorGUILayout.LabelField("Negative Key", GUILayout.MaxWidth(75));
+			EditorGUILayout.LabelField("Positive Key", GUILayout.MinWidth(100));
+			GUILayout.Space(10);
+			EditorGUILayout.LabelField("Negative Key", GUILayout.MaxWidth(100));
 		}
 		GUILayout.EndHorizontal();
 
@@ -290,7 +287,7 @@ public class vp_InputWindow : EditorWindow
 			{
 				GUILayout.BeginHorizontal();
 				GUILayout.Space(20);
-				EditorGUILayout.HelpBox("There are no Input Axis. Click \"Add Input Axis\" to add a new Axis or \"Restore Defaults\" To restore the default Axis.", MessageType.Info);
+				EditorGUILayout.HelpBox("There are no Input axes. Click \"Add Unity Input Axis\" to add a new axis or \"Restore Defaults\" To restore the default axis.", MessageType.Info);
 				GUILayout.Space(20);
 				GUILayout.EndHorizontal();
 			}
@@ -299,13 +296,13 @@ public class vp_InputWindow : EditorWindow
 			
 			GUILayout.BeginHorizontal();
 			GUILayout.Space(10f);
-			if (GUILayout.Button("Add Input Axis", GUILayout.MinWidth(150), GUILayout.MinHeight(25)))
+			if (GUILayout.Button("Add Unity Input Axis", GUILayout.MinWidth(150), GUILayout.MinHeight(25)))
 			{
 				m_Component.AddAxis("Axis "+m_Component.AxisKeys.Count, KeyCode.None, KeyCode.None);
 			}
 			if(m_Component.AxisKeys.Count == 0)
 			{
-				if (GUILayout.Button("Restore Axis Defaults", GUILayout.MinWidth(150), GUILayout.MinHeight(25)))
+				if (GUILayout.Button("Restore Defaults", GUILayout.MinWidth(150), GUILayout.MinHeight(25)))
 				{
 					m_Component.SetupDefaults("Axis");
 				}
@@ -316,8 +313,11 @@ public class vp_InputWindow : EditorWindow
 		}
 		
 	}
-	
-	
+
+
+	/// <summary>
+	/// 
+	/// </summary>
 	public virtual void DoUnityAxis()
 	{
 	
@@ -356,19 +356,15 @@ public class vp_InputWindow : EditorWindow
 				}
 			}
 			
-			
 			GUILayout.BeginHorizontal();
 			GUILayout.Space(20);
 			if(m_Component.UnityAxis.Count == 0)
 			{
-				EditorGUILayout.HelpBox("There are no Unity Axis. Click \"Add Unity Input Axis\" to add a new Unity Axis or \"Restore Defaults\" To restore the default Unity Axis.", MessageType.Info);
+				EditorGUILayout.HelpBox("There are no Unity axes. Click \"Add Unity Input Axis\" to add a new Unity axis or \"Restore Defaults\" To restore the default Unity axis.", MessageType.Info);
 			}
 			else
 			{
-				string type = "Mouse";
-				if(m_Component.ControlType == 1)
-					type = "Joystick";
-				EditorGUILayout.HelpBox("Due to the nature of Unity Input, Axis cannot be set for the "+type+". Because of this, VP Input Manager will use Input.GetAxisRaw(), so you need to enter in the Axis name as it appears in Unity's Input Inspector", MessageType.Warning);
+				EditorGUILayout.HelpBox("Axis names must be entered exactly as they appear in Unity's Input Inspector.", MessageType.Info);
 			}
 			GUILayout.Space(20);
 			GUILayout.EndHorizontal();
@@ -397,9 +393,12 @@ public class vp_InputWindow : EditorWindow
 		}
 	
 	}
-	
-	
-	static public void DrawSeparator ()
+
+
+	/// <summary>
+	/// 
+	/// </summary>
+	static public void DrawSeparator()
 	{
 		
 		GUILayout.Space(12f);
@@ -416,5 +415,43 @@ public class vp_InputWindow : EditorWindow
 		}
 		
 	}
+
+
+	// -------- GUI styles --------
+
+	public static GUIStyle SmallButtonStyle
+	{
+		get
+		{
+			if (m_SmallButtonStyle == null)
+			{
+				m_SmallButtonStyle = new GUIStyle("Button");
+				m_SmallButtonStyle.fontSize = 10;
+				m_SmallButtonStyle.alignment = TextAnchor.MiddleCenter;
+				m_SmallButtonStyle.margin.left = 1;
+				m_SmallButtonStyle.margin.right = 1;
+				m_SmallButtonStyle.padding = new RectOffset(0, 4, 0, 2);
+			}
+			return m_SmallButtonStyle;
+		}
+	}
+
+
+	public static GUIStyle HeaderStyleSelected
+	{
+		get
+		{
+			if (m_HeaderStyle == null)
+			{
+				m_HeaderStyle = new GUIStyle("Label");
+				m_HeaderStyle.fontSize = 12;
+				//m_HeaderStyle.fontStyle = FontStyle.Bold;
+				m_HeaderStyle.alignment = TextAnchor.MiddleLeft;
+
+			}
+			return m_HeaderStyle;
+		}
+	}
+
     
 }

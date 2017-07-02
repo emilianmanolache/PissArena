@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Remover.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this script makes an object disappear after a set amount of time.
 //					default lifetime is ten seconds. minimum is a tenth of a second.
@@ -27,14 +27,14 @@ public class vp_Remover : MonoBehaviour
 	void OnEnable()
 	{
 
-		vp_Timer.In(Mathf.Max(LifeTime, 0.1f), delegate()
+		vp_Timer.In(Mathf.Max(LifeTime, 0.1f), () =>
 		{
 			vp_Utility.Destroy(gameObject);
 		}, m_DestroyTimer);
 
 	}
 
-
+	
 	/// <summary>
 	/// 
 	/// </summary>
@@ -42,6 +42,6 @@ public class vp_Remover : MonoBehaviour
 	{
 		m_DestroyTimer.Cancel();
 	}
-
+	
 
 }

@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPInventory.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a version of vp_Inventory that's aware of the PlayerEventHandler
 //					and uses its events
@@ -117,6 +117,8 @@ public class vp_FPInventory : vp_Inventory
 	{
 		get
 		{
+			if (this == null)
+				return null; 
 			if (m_Player == null)
 				m_Player = transform.GetComponent<vp_PlayerEventHandler>();
 			return m_Player;
@@ -293,7 +295,7 @@ public class vp_FPInventory : vp_Inventory
 	protected override void DoAddItem(vp_ItemType type, int id)
 	{
 
-		bool alreadyHaveIt = vp_Gameplay.isMultiplayer ? HaveItem(type) : HaveItem(type, id);	// NOTE: id not supported in UFPS multiplayer add-on
+		bool alreadyHaveIt = vp_Gameplay.IsMultiplayer ? HaveItem(type) : HaveItem(type, id);	// NOTE: id not supported in UFPS multiplayer add-on
 
 		base.DoAddItem(type, id);
 
@@ -320,7 +322,7 @@ public class vp_FPInventory : vp_Inventory
 	protected override void DoAddUnitBank(vp_UnitBankType unitBankType, int id, int unitsLoaded)
 	{
 
-		bool alreadyHaveIt = vp_Gameplay.isMultiplayer ?
+		bool alreadyHaveIt = vp_Gameplay.IsMultiplayer ?
 			HaveItem(unitBankType)			// NOTE: id not supported in UFPS multiplayer add-on
 			: HaveItem(unitBankType, id);	// singleplayer
 
@@ -344,22 +346,22 @@ public class vp_FPInventory : vp_Inventory
 
 		// --- see if we should try to wield a weapon because of this item pickup ---
 
-		if (m_AutoWield.Always)
+		if ((m_AutoWield != null) && m_AutoWield.Always)
 			goto tryWield;
 
-		if (m_AutoWield.IfUnarmed && (WeaponHandler.CurrentWeaponIndex < 1))
+		if ((m_AutoWield != null) && m_AutoWield.IfUnarmed && (WeaponHandler.CurrentWeaponIndex < 1))
 			goto tryWield;
 
-		if (m_AutoWield.IfOutOfAmmo
+		if ((m_AutoWield != null) && m_AutoWield.IfOutOfAmmo
 			&& (WeaponHandler.CurrentWeaponIndex > 0)
 			&& (WeaponHandler.CurrentWeapon.AnimationType != (int)vp_Weapon.Type.Melee)
 			&& m_Player.CurrentWeaponAmmoCount.Get() < 1)
 			goto tryWield;
 
-		if (m_AutoWield.IfNotPresent && !m_AutoWield.FirstTimeOnly && !alreadyHaveIt)
+		if ((m_AutoWield != null) && m_AutoWield.IfNotPresent && !m_AutoWield.FirstTimeOnly && !alreadyHaveIt)
 			goto tryWield;
 
-		if (m_AutoWield.FirstTimeOnly && !haveHadItBefore)
+		if ((m_AutoWield != null) && m_AutoWield.FirstTimeOnly && !haveHadItBefore)
 			goto tryWield;
 
 		return;
@@ -828,7 +830,7 @@ public class vp_FPInventory : vp_Inventory
 		m_PreviouslyOwnedItems.Clear();
 		m_CurrentWeaponInstance = null;
 
-		if (!m_Misc.ResetOnRespawn)
+		if ((m_Misc != null) && !m_Misc.ResetOnRespawn)
 			return;
 
 		base.Reset();

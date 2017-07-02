@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_SecurityCamTurret.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	an angry security camera + machinegun turret that swivels
 //					back and forth in search for the local player. see the included

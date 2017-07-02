@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Debris.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	death effect for breaking objects. to use this script:
 //						1. create small objects to simulate pieces / debris of your
@@ -35,10 +35,19 @@ public class vp_Debris : MonoBehaviour
 	public float UpForce = 1.0f;				// how much to push affected objects up in the air
 
 	// sound
-	AudioSource m_Audio = null;
 	public List<AudioClip> Sounds = new List<AudioClip>();
 	public float SoundMinPitch = 0.8f;			// random pitch range for explosion sound
 	public float SoundMaxPitch = 1.2f;
+	AudioSource m_Audio = null;
+	AudioSource Audio
+	{
+		get
+		{
+			if (m_Audio == null)
+				m_Audio = GetComponent<AudioSource>();
+			return m_Audio;
+		}
+	}
 
 	public float LifeTime = 5.0f;				// total lifetime of effect, during which rigidbodies will be removed at random points
 
@@ -53,12 +62,13 @@ public class vp_Debris : MonoBehaviour
 	void Awake()
 	{
 	
-		m_Audio = GetComponent<AudioSource>();
 		m_Colliders = GetComponentsInChildren<Collider>();
-		
+
 		foreach (Collider col in m_Colliders)
+		{
 			if (col.GetComponent<Rigidbody>())
-				m_PiecesInitial.Add(col, new Dictionary<string, object>(){ { "Position", col.transform.localPosition }, { "Rotation", col.transform.localRotation } });
+				m_PiecesInitial.Add(col, new Dictionary<string, object>() { { "Position", col.transform.localPosition }, { "Rotation", col.transform.localRotation } });
+		}
 	
 	}
 	
@@ -70,7 +80,8 @@ public class vp_Debris : MonoBehaviour
 	{
 	
 		m_Destroy = false;
-		m_Audio.playOnAwake = true;
+		if(Audio != null)
+			Audio.playOnAwake = true;
 		
 		foreach (Collider col in m_Colliders)
 		{
@@ -88,7 +99,7 @@ public class vp_Debris : MonoBehaviour
 				vp_Timer.In(Random.Range(LifeTime * 0.5f, LifeTime * 0.95f), delegate()
 				{
 					if (c != null)
-						vp_Utility.Destroy(c.gameObject);
+						vp_Utility.Activate(c.gameObject, false);
 				});
 			}
 		}
@@ -99,12 +110,12 @@ public class vp_Debris : MonoBehaviour
 		});
 
 		// play sound
-		if (Sounds.Count > 0)
+		if ((Audio != null) && (Sounds.Count > 0))
 		{
-			m_Audio.rolloffMode = AudioRolloffMode.Linear;
-			m_Audio.clip = Sounds[(int)Random.Range(0, (Sounds.Count))];
-			m_Audio.pitch = Random.Range(SoundMinPitch, SoundMaxPitch) * Time.timeScale;
-			m_Audio.Play();
+			Audio.rolloffMode = AudioRolloffMode.Linear;
+			Audio.clip = Sounds[(int)Random.Range(0, (Sounds.Count))];
+			Audio.pitch = Random.Range(SoundMinPitch, SoundMaxPitch) * Time.timeScale;
+			Audio.Play();
 		}
 
 	}
@@ -118,8 +129,14 @@ public class vp_Debris : MonoBehaviour
 
 		// the effect should be removed as soon as the 'm_Destroy' flag
 		// has been set and the sound has stopped playing
-		if (m_Destroy && !GetComponent<AudioSource>().isPlaying)
+		if (m_Destroy && (Audio != null) && (!Audio.isPlaying))
+		{
+			foreach (Collider col in m_Colliders)
+			{
+				vp_Utility.Activate(col.gameObject, true);
+			}
 			vp_Utility.Destroy(gameObject);
+		}
 
 	}
 

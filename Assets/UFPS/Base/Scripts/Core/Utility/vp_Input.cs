@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Input.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	This class handles mouse, keyboard and joystick input. All
 //					UFPS input should run through this class to keep all input
@@ -27,11 +27,15 @@ public class vp_Input : MonoBehaviour
 
 	public int ControlType = 0;
 
-	// buttons
+	// primary buttons
 	public Dictionary<string, KeyCode> Buttons = new Dictionary<string, KeyCode>();
 	public List<string> ButtonKeys = new List<string>();
 	public List<KeyCode> ButtonValues = new List<KeyCode>();
-	
+
+	// secondary buttons
+	public Dictionary<string, KeyCode> Buttons2 = new Dictionary<string, KeyCode>();
+	public List<KeyCode> ButtonValues2 = new List<KeyCode>();
+
 	// axis
 	public Dictionary<string, vp_InputAxis> Axis = new Dictionary<string, vp_InputAxis>();
 	public List<string> AxisKeys = new List<string>();
@@ -41,8 +45,8 @@ public class vp_Input : MonoBehaviour
 	public List<string> UnityAxis = new List<string>();
 	
 	// paths
-	protected static string m_FolderPath = "UFPS/Base/Content/Resources/Input";
-	protected static string m_PrefabPath = "Assets/UFPS/Base/Content/Resources/Input/vp_Input.prefab";
+	public static string FolderPath = "UFPS/Base/Content/Resources/Input";
+	public static string PrefabPath = "Assets/UFPS/Base/Content/Resources/Input/vp_Input.prefab";
 	
 	
 	public static bool mIsDirty = true;
@@ -85,52 +89,52 @@ public class vp_Input : MonoBehaviour
 	
 	
 	/// <summary>
-	/// Creates the required prefab if one doesn't exist
+	/// creates the required prefab if one doesn't exist
 	/// </summary>
-	public static void CreateIfNoExist()
+	public static void CreateMissingInputPrefab(string prefabPath, string folderPath)
 	{
-	
+
 #if UNITY_EDITOR
-		
-		GameObject go = UnityEditor.AssetDatabase.LoadAssetAtPath(m_PrefabPath, typeof(GameObject)) as GameObject;
-		if(go == null)
+
+		GameObject go = UnityEditor.AssetDatabase.LoadAssetAtPath(prefabPath, typeof(GameObject)) as GameObject;
+		if (go == null)
 		{
 			// create a directory hierarchy to store the prefab if one doesn't exist
-			if(!Application.isPlaying)
+			if (!Application.isPlaying)
 			{
 				bool needsRefresh = false;
 				string path = "";
-				string[] folders = m_FolderPath.Split(new string[1]{ "/" }, System.StringSplitOptions.None);
-				foreach(string folder in folders)
+				string[] folders = folderPath.Split(new string[1] { "/" }, System.StringSplitOptions.None);
+				foreach (string folder in folders)
 				{
 					path += "/";
-					if(!System.IO.Directory.Exists(Application.dataPath + path + folder))
+					if (!System.IO.Directory.Exists(Application.dataPath + path + folder))
 					{
 						needsRefresh = true;
 						System.IO.Directory.CreateDirectory(Application.dataPath + path + folder);
 					}
 					path += folder;
 				}
-				if(needsRefresh)
+				if (needsRefresh)
 					UnityEditor.AssetDatabase.Refresh();
 			}
-				
+
 			go = new GameObject("vp_Input") as GameObject;
 			go.AddComponent<vp_Input>();
-			UnityEditor.PrefabUtility.CreatePrefab(m_PrefabPath, go);
-			Object.DestroyImmediate(go);
+			UnityEditor.PrefabUtility.CreatePrefab(prefabPath, go);
+			UnityEngine.Object.DestroyImmediate(go);
 		}
 		else
 		{
-			if(go.GetComponent<vp_Input>() == null)
+			if (go.GetComponent<vp_Input>() == null)
 				go.AddComponent<vp_Input>();
 		}
-		
+
 #endif
-	
+
 	}
-	
-	
+
+		
 	/// <summary>
 	/// 
 	/// </summary>
@@ -139,10 +143,10 @@ public class vp_Input : MonoBehaviour
 	
 		if(m_Instance == null)
 			m_Instance = Instance;
-	
+
 	}
-	
-	
+
+
 	/// <summary>
 	/// Makes this instance dirty
 	/// </summary>
@@ -157,10 +161,10 @@ public class vp_Input : MonoBehaviour
 	/// </summary>
 	public virtual void SetupDefaults( string type = "" )
 	{
-	
+
 		if(type == "" || type == "Buttons")
 		{
-			if(ButtonKeys.Count == 0)
+			if (ButtonKeys.Count == 0)
 			{
 				AddButton("Attack", KeyCode.Mouse0);
 				AddButton("SetNextWeapon", KeyCode.E);
@@ -176,6 +180,55 @@ public class vp_Input : MonoBehaviour
 				AddButton("Accept2", KeyCode.KeypadEnter);
 				AddButton("Pause", KeyCode.P);
 				AddButton("Menu", KeyCode.Escape);
+				AddButton("Toggle3rdPerson", KeyCode.V);
+				AddButton("ScoreBoard", KeyCode.Tab);
+				AddButton("SetWeapon1", KeyCode.Alpha1);
+				AddButton("SetWeapon2", KeyCode.Alpha2);
+				AddButton("SetWeapon3", KeyCode.Alpha3);
+				AddButton("SetWeapon4", KeyCode.Alpha4);
+				AddButton("SetWeapon5", KeyCode.Alpha5);
+				AddButton("SetWeapon6", KeyCode.Alpha6);
+				AddButton("SetWeapon7", KeyCode.Alpha7);
+				AddButton("SetWeapon8", KeyCode.Alpha8);
+				AddButton("SetWeapon9", KeyCode.Alpha9);
+				AddButton("SetWeapon10", KeyCode.Alpha0);
+				AddButton("Teleport", KeyCode.None);
+
+				CreateMissingSecondaryButtons();
+				
+				// these defaults are set up for the Xbox gamepad on PC.
+				// NOTE: the Xbox gamepad trigger buttons are not really buttons, but input
+				// axes. the UFPS default project binds its second "Fire1" axis to 'joystick axis 3'
+				// which corresponds to the right trigger. see the snippet in 'vp_FPInput -> InputAttack' to enable this
+
+				AddSecondaryButton("Attack", KeyCode.JoystickButton5);			// right bumper
+				AddSecondaryButton("SetNextWeapon", KeyCode.JoystickButton3);	// Y button
+				AddSecondaryButton("SetPrevWeapon", KeyCode.None);
+				AddSecondaryButton("ClearWeapon", KeyCode.None);
+				AddSecondaryButton("Zoom", KeyCode.JoystickButton4);			// left bumper
+				AddSecondaryButton("Reload", KeyCode.JoystickButton2);			// X button
+				AddSecondaryButton("Jump", KeyCode.JoystickButton0);			// A button
+				AddSecondaryButton("Crouch", KeyCode.JoystickButton1);			// B button
+				AddSecondaryButton("Run", KeyCode.JoystickButton8);				// left analog stick pressed
+				AddSecondaryButton("Interact", KeyCode.JoystickButton2);		// X button
+				AddSecondaryButton("Accept1", KeyCode.None);
+				AddSecondaryButton("Accept2", KeyCode.None);
+				AddSecondaryButton("Pause", KeyCode.P);
+				AddSecondaryButton("Menu", KeyCode.JoystickButton6);			// back button
+				AddSecondaryButton("Toggle3rdPerson", KeyCode.None);
+				AddSecondaryButton("ScoreBoard", KeyCode.None);
+				AddSecondaryButton("SetWeapon1", KeyCode.None);
+				AddSecondaryButton("SetWeapon2", KeyCode.None);
+				AddSecondaryButton("SetWeapon3", KeyCode.None);
+				AddSecondaryButton("SetWeapon4", KeyCode.None);
+				AddSecondaryButton("SetWeapon5", KeyCode.None);
+				AddSecondaryButton("SetWeapon6", KeyCode.None);
+				AddSecondaryButton("SetWeapon7", KeyCode.None);
+				AddSecondaryButton("SetWeapon8", KeyCode.None);
+				AddSecondaryButton("SetWeapon9", KeyCode.None);
+				AddSecondaryButton("SetWeapon10", KeyCode.None);
+				AddSecondaryButton("Teleport", KeyCode.None);
+
 			}
 		}
 		
@@ -194,16 +247,55 @@ public class vp_Input : MonoBehaviour
 			{
 				AddUnityAxis("Mouse X");
 				AddUnityAxis("Mouse Y");
+				AddUnityAxis("Horizontal");
+				AddUnityAxis("Vertical");
+				AddUnityAxis("LeftTrigger");
+				AddUnityAxis("RightTrigger");
 			}
 		}
 		
 		UpdateDictionaries();
 	
 	}
-	
-	
+
+
 	/// <summary>
-	/// Adds a button with specified keycode
+	/// this method enforces the creation of one secondary button
+	/// per every primary one
+	/// </summary>
+	public virtual void CreateMissingSecondaryButtons()
+	{
+
+		foreach (KeyValuePair<string, KeyCode> k in Buttons)
+		{
+			if (!Buttons2.ContainsKey(k.Key))
+				AddSecondaryButton(k.Key, default(KeyCode));
+		}
+
+	}
+
+
+	/// <summary>
+	/// 
+	/// </summary>
+	bool HaveBinding(string button)
+	{
+
+		if (Buttons.ContainsKey(button))
+			return true;
+
+		if (Buttons2.ContainsKey(button))
+			return true;
+
+		Debug.LogError("Error (" + this + ") \"" + button + "\" is not declared in the UFPS Input Manager. You must add it from the 'UFPS -> Input Manager' editor menu for this button to work.");
+
+		return false;
+
+	}
+
+
+	/// <summary>
+	/// Adds a button with a specified keycode
 	/// </summary>
 	public virtual void AddButton( string n, KeyCode k = KeyCode.None )
 	{
@@ -216,6 +308,31 @@ public class vp_Input : MonoBehaviour
 			ButtonValues.Add(k);
 		}
 	
+	}
+
+
+	/// <summary>
+	/// Adds a secondary button with a specified keycode
+	/// </summary>
+	public virtual void AddSecondaryButton(string n, KeyCode k = KeyCode.None)
+	{
+
+		if (ButtonKeys.Contains(n))
+		{
+			try
+			{
+				ButtonValues2[ButtonKeys.IndexOf(n)] = k;
+			}
+			catch
+			{
+				ButtonValues2.Add(k);
+			}
+		}
+		else
+		{
+			ButtonValues2.Add(k);
+		}
+
 	}
 
 	
@@ -260,21 +377,40 @@ public class vp_Input : MonoBehaviour
 	
 		if(!Application.isPlaying)
 			return;
-	
+
 		Buttons.Clear();
-		for(int i=0;i<ButtonKeys.Count;i++)
-			Buttons.Add(ButtonKeys[i], ButtonValues[i]);
-			
+		for (int i = 0; i < ButtonKeys.Count; i++)
+		{
+			if(!Buttons.ContainsKey(ButtonKeys[i]))
+				Buttons.Add(ButtonKeys[i], ButtonValues[i]);
+		}
+
+		try     // handles a harmless case in the mobile add-on
+		{
+			Buttons2.Clear();
+			for (int i = 0; i < ButtonKeys.Count; i++)
+			{
+				if (!Buttons2.ContainsKey(ButtonKeys[i]))
+					Buttons2.Add(ButtonKeys[i], ButtonValues2[i]);
+			}
+		}
+		catch
+		{
+		}
+
 		Axis.Clear();
 		for(int i=0;i<AxisKeys.Count;i++)
+		{
 			Axis.Add(AxisKeys[i], new vp_InputAxis{ Positive = AxisValues[i].Positive, Negative = AxisValues[i].Negative});
-	
+		}
+
+		CreateMissingSecondaryButtons();
+
 	}
 	
 	
 	/// <summary>
-	/// handles keyboard, mouse and joystick input for
-	/// any button state
+	/// handles keyboard, mouse and joystick input for any button state
 	/// </summary>
 	public static bool GetButtonAny( string button )
 	{
@@ -285,17 +421,22 @@ public class vp_Input : MonoBehaviour
 	
 	
 	/// <summary>
-	/// handles keyboard, mouse and joystick input for
-	/// any button state
+	/// handles keyboard, mouse and joystick input for any button state
 	/// </summary>
 	public virtual bool DoGetButtonAny( string button )
 	{
-	
-		if(Buttons.ContainsKey(button))
-			return Input.GetKey( Buttons[button] ) || Input.GetKeyDown( Buttons[button] ) || Input.GetKeyUp( Buttons[button] );
-			
-		Debug.LogError("\""+button+"\" is not in VP Input Manager's Buttons. You must add it for this Button to work.");	
-		return false;
+
+		if (!HaveBinding(button))	// post an error if binding is not found
+			return false;
+
+		if (Input.GetKey(Buttons[button]) || Input.GetKeyDown(Buttons[button]) || Input.GetKeyUp(Buttons[button]))
+			return true;	// button held, pressed or released as primary binding
+
+		if (Input.GetKeyDown(Buttons2[button]) || Input.GetKeyDown(Buttons2[button]) || Input.GetKeyUp(Buttons2[button]))
+			return true;	// button held, pressed or released as secondary binding
+
+		return false;	// button has not been touched in any way
+
 	
 	}
 	
@@ -305,7 +446,7 @@ public class vp_Input : MonoBehaviour
 	/// </summary>
 	public static bool GetButton(string button)
 	{
-	
+
 		return Instance.DoGetButton( button );
 	
 	}
@@ -316,13 +457,18 @@ public class vp_Input : MonoBehaviour
 	/// </summary>
 	public virtual bool DoGetButton( string button )
 	{
-	
-		if(Buttons.ContainsKey(button))
-			return Input.GetKey( Buttons[button] );
-			
-		Debug.LogError("\""+button+"\" is not in VP Input Manager's Buttons. You must add it for this Button to work.");	
-		return false;
-	
+
+		if (!HaveBinding(button))	// post an error if binding is not found
+			return false;
+
+		if (Input.GetKey(Buttons[button]))
+			return true;	// button held down as primary binding
+
+		if (Input.GetKey(Buttons2[button]))
+			return true;	// button held down as secondary binding
+
+		return false;	// button not held down
+
 	}
 	
 	
@@ -342,12 +488,17 @@ public class vp_Input : MonoBehaviour
 	/// </summary>
 	public virtual bool DoGetButtonDown( string button )
 	{
-	
-		if(Buttons.ContainsKey(button))
-			return Input.GetKeyDown( Buttons[button] );
-			
-		Debug.LogError("\""+button+"\" is not in VP Input Manager's Buttons. You must add it for this Button to work.");
-		return false;
+
+		if (!HaveBinding(button))	// post an error if binding is not found
+			return false;
+
+		if (Input.GetKeyDown(Buttons[button]))
+			return true;	// button pressed as primary binding
+
+		if (Input.GetKeyDown(Buttons2[button]))
+			return true;	// button pressed as secondary binding
+
+		return false;	// button not pressed
 	
 	}
 	
@@ -368,12 +519,17 @@ public class vp_Input : MonoBehaviour
 	/// </summary>
 	public virtual bool DoGetButtonUp( string button )
 	{
-	
-		if(Buttons.ContainsKey(button))
-			return Input.GetKeyUp( Buttons[button] );
-			
-		Debug.LogError("\""+button+"\" is not in VP Input Manager's Buttons. You must add it for this Button to work.");
-		return false;
+
+		if (!HaveBinding(button))	// post an error if binding is not found
+			return false;
+
+		if (Input.GetKeyUp(Buttons[button]))
+			return true;	// button released as primary binding
+
+		if (Input.GetKeyUp(Buttons2[button]))
+			return true;	// button released as secondary binding
+
+		return false;	// button not released
 	
 	}
 	
@@ -410,7 +566,7 @@ public class vp_Input : MonoBehaviour
 		}
 		else
 		{
-			Debug.LogError("\""+axis+"\" is not in VP Input Manager's Unity Axis. You must add it for this Axis to work.");
+			Debug.LogError("Error ("+this+") \"" + axis + "\" is not declared in the UFPS Input Manager. You must add it from the 'UFPS -> Input Manager' editor menu for this axis to work.");
 			return 0;
 		}
 	
@@ -425,16 +581,24 @@ public class vp_Input : MonoBehaviour
 	public static void ChangeButtonKey( string button, KeyCode keyCode, bool save = false )
 	{
 
-		if(!Instance.Buttons.ContainsKey(button))
+		if (Instance.Buttons.ContainsKey(button))
 		{
-			Debug.LogWarning("The Button \"" + button + "\" Doesn't Exist");
+			if (save)
+				Instance.ButtonValues[vp_Input.Instance.ButtonKeys.IndexOf(button)] = keyCode;
+			Instance.Buttons[button] = keyCode;
 			return;
 		}
-	
-		if(save)
-			Instance.ButtonValues[vp_Input.Instance.ButtonKeys.IndexOf(button)] = keyCode;
 		
-		Instance.Buttons[button] = keyCode;
+		if (Instance.Buttons2.ContainsKey(button))
+		{
+			if (save)
+				Instance.ButtonValues2[vp_Input.Instance.ButtonKeys.IndexOf(button)] = keyCode;
+			Instance.Buttons2[button] = keyCode;
+			return;
+		}
+
+		// will post an error message saying button doesn't exist
+		Instance.HaveBinding(button);
 
 	}
 
@@ -458,6 +622,36 @@ public class vp_Input : MonoBehaviour
 		Instance.Axis[n] = new vp_InputAxis { Positive = pk, Negative = nk };
 
 	}
-	
+
+
+	/// <summary>
+	/// 
+	/// </summary>
+	void DebugDumpCollections()
+	{
+
+		string buttonlist = "\n\n---- BUTTON KEYS: ---- \n";
+		string keyCodelist = "\n\n---- BUTTON VALUES: ---- \n";
+		string keyCodelist2 = "\n\n---- BUTTON VALUES 2: ---- \n";
+
+		foreach (string s in ButtonKeys)
+		{
+			buttonlist += ("\t\t" + s + "\n");
+		}
+
+		foreach (KeyCode k in ButtonValues)
+		{
+			keyCodelist += ("\t\t" + k + "\n");
+		}
+
+		foreach (KeyCode k in ButtonValues2)
+		{
+			keyCodelist2 += ("\t\t" + k + "\n");
+		}
+
+		Debug.Log("-------- DUMP --------\n" + buttonlist + keyCodelist + keyCodelist2);
+
+	}
+
 
 }

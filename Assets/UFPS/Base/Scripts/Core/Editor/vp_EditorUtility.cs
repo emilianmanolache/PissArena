@@ -1,17 +1,21 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_EditorUtility.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	misc editor utility methods
 //
 /////////////////////////////////////////////////////////////////////////////////
 
+// for Anti-Cheat Toolkit support (see the manual for more info)
+#if ANTICHEAT
+using CodeStage.AntiCheat.ObscuredTypes;
+#endif
+
 using UnityEngine;
 using UnityEditor;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -48,8 +52,8 @@ public static class vp_EditorUtility
 
 		return asset;
 	}
-
-
+	
+	
 	/// <summary>
 	/// creates a new filename from a base filename by appending
 	/// the next number that will result in a non-existing filename
@@ -137,14 +141,23 @@ public static class vp_EditorUtility
 				f.FieldType == typeof(UnityEngine.AudioClip)))
 					goto copy;
 
-			if (copyValues &&
-				(f.FieldType == typeof(float)
-				|| f.FieldType == typeof(Vector4)
-				|| f.FieldType == typeof(Vector3)
-				|| f.FieldType == typeof(Vector2)
-				|| f.FieldType == typeof(int)
-				|| f.FieldType == typeof(bool)
-				|| f.FieldType == typeof(string)))
+			if (copyValues && (
+					f.FieldType == typeof(float)
+				||	f.FieldType == typeof(Vector4)
+				||	f.FieldType == typeof(Vector3)
+				||	f.FieldType == typeof(Vector2)
+				||	f.FieldType == typeof(int)
+				||	f.FieldType == typeof(bool)
+				||	f.FieldType == typeof(string)
+#if ANTICHEAT
+				||	f.FieldType == typeof(ObscuredFloat)
+				||	f.FieldType == typeof(ObscuredVector3)
+				||	f.FieldType == typeof(ObscuredVector2)
+				||	f.FieldType == typeof(ObscuredInt)
+				||	f.FieldType == typeof(ObscuredBool)
+				||	f.FieldType == typeof(ObscuredString)
+#endif
+				))
 				goto copy;
 
 			continue;

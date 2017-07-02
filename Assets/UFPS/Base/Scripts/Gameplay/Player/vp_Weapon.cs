@@ -1,23 +1,38 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Weapon.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	
 //
 /////////////////////////////////////////////////////////////////////////////////
 
-using UnityEngine; 
+using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 public class vp_Weapon : vp_Component
 {
 
 	// 3rd person weapon gameobject
-	public GameObject Weapon3rdPersonModel = null;		// NOTE: this is always a GAMEOBJECT from the HIERARCHY (SCENE) and used to represent a vp_Weapon in 3rd person
+	public GameObject Weapon3rdPersonModel = null;				// NOTE: this is always a GAMEOBJECT from the HIERARCHY (SCENE) and used to represent a vp_Weapon in 3rd person
+	public Material Weapon3rdPersonInvisibleMaterial = null;	// used to make 3rd person weapons cast shadows even when they are invisible in the 1st person view. should be
+																// set to an invisible, shadow casting material. see the included 'InvisibleShadowCaster' shader & material
+	protected Material[] m_VisibleMaterials;					// for caching materials of the weapon on startup, so they can be switched on and off later
+	protected Material[] m_InvisibleMaterials;
 	protected GameObject m_WeaponModel = null;
+	protected static vp_FPBodyAnimator m_SceneFPBodyAnimator = null;
+	protected vp_FPBodyAnimator SceneFPBodyAnimator	// if invisible material is null, this is used to fetch an invisible shadowcaster material from the local player, if present
+	{
+		get
+		{
+			if (m_SceneFPBodyAnimator == null)
+				m_SceneFPBodyAnimator = FindObjectOfType<vp_FPBodyAnimator>();
+			return m_SceneFPBodyAnimator;
+		}
+	}
 
 	// recoil position spring
 	public Vector3 PositionOffset = new Vector3(0.15f, -0.15f, -0.15f);
@@ -42,7 +57,7 @@ public class vp_Weapon : vp_Component
 	public int AnimationType = 1;
 	public int AnimationGrip = 1;
 
-	public enum Type
+	public new enum Type
 	{
 		Custom,
 		Firearm,
@@ -97,6 +112,20 @@ public class vp_Weapon : vp_Component
 			if ((m_Weapon3rdPersonModelRenderer == null) && (Weapon3rdPersonModel != null))
 				m_Weapon3rdPersonModelRenderer = Weapon3rdPersonModel.GetComponent<Renderer>();
 			return m_Weapon3rdPersonModelRenderer;
+		}
+	}
+
+
+	protected Vector3 m_RotationSpring2DefaultRotation = Vector3.zero;
+	public Vector3 RotationSpring2DefaultRotation
+	{
+		get
+		{
+			return m_RotationSpring2DefaultRotation;
+		}
+		set
+		{
+			m_RotationSpring2DefaultRotation = value;
 		}
 	}
 
@@ -160,20 +189,6 @@ public class vp_Weapon : vp_Component
 	}
 
 
-	protected Vector3 m_RotationSpring2DefaultRotation = Vector3.zero;
-	public Vector3 RotationSpring2DefaultRotation
-	{
-		get
-		{
-			return m_RotationSpring2DefaultRotation;
-		}
-		set
-		{
-			m_RotationSpring2DefaultRotation = value;
-		}
-	}
-
-
 	/// <summary>
 	/// in 'Start' we do things that need to be run once at the
 	/// beginning, but potentially depend on all other scripts
@@ -199,9 +214,11 @@ public class vp_Weapon : vp_Component
 
 		CacheRenderers();
 
-
+		if (Player.IsLocal.Get())
+			CacheMaterials();
 
 	}
+
 
 	/// <summary>
 	/// 
@@ -392,10 +409,9 @@ public class vp_Weapon : vp_Component
 	{
 
 		if (Player == null)
-
 			return;
 
-		// don't touch event handler if it hasn't been initialized yet
+		// don't touch event handler events if they haven't been initialized yet
 		if (Player.IsFirstPerson == null)
 			return;
 
@@ -425,9 +441,10 @@ public class vp_Weapon : vp_Component
 		if (Weapon3rdPersonModel == null)
 			return;
 
-		if (active)
+		if (active
+			|| (Player.IsLocal.Get() && (Player.CurrentWeaponName.Get() == name))	// always render in case of a local player 3rd person dummy weapon, for shadow rendering
+			)
 		{
-			// TODO: this should not toggle renderer, it should set invisible shadow caster material
 			if(Weapon3rdPersonModelRenderer != null)
 				Weapon3rdPersonModelRenderer.enabled = true;
 			vp_Utility.Activate(Weapon3rdPersonModel, true);
@@ -447,6 +464,80 @@ public class vp_Weapon : vp_Component
 					vp_Utility.Activate(Weapon3rdPersonModel, false);
 			}, m_Weapon3rdPersonModelWakeUpTimer);	// this timer handle is important to properly disable timer on application quit / level load
 		}
+
+		if(Player.IsLocal.Get())
+			RefreshMaterials(active);
+
+	}
+
+
+	/// <summary>
+	/// for 3d person dummy weapon shadow rendering. caches the materials on the
+	/// model on Awake. the materials are sorted into four arrays to be swapped
+	/// off and onto the model at runtime depending on the current gameplay situation
+	/// </summary>
+	protected virtual void CacheMaterials()
+	{
+
+		// cache default materials
+		if (Weapon3rdPersonModelRenderer == null)
+			return;
+
+		m_VisibleMaterials = Weapon3rdPersonModelRenderer.materials;
+
+		// cache invisible material
+		if (Weapon3rdPersonInvisibleMaterial == null)
+		{
+			// if invisible material is not set, take a shot that the first person
+			// player has one that will work
+			if (SceneFPBodyAnimator != null)
+				Weapon3rdPersonInvisibleMaterial = m_SceneFPBodyAnimator.InvisibleMaterial;
+		}
+
+		m_InvisibleMaterials = new Material[Weapon3rdPersonModelRenderer.materials.Length];
+
+		for (int v = 0; v < Weapon3rdPersonModelRenderer.materials.Length; v++)
+			m_InvisibleMaterials[v] = Weapon3rdPersonInvisibleMaterial;
+
+		if (Weapon3rdPersonInvisibleMaterial == null)
+		{
+			Debug.LogWarning("Warning (" + this + ") No weapon invisible material has been set. This weapon will cast no 3rd person shadow.");
+			return;
+		}
+
+		RefreshMaterials();
+
+	}
+
+
+
+	/// <summary>
+	/// for 3d person dummy weapon shadow rendering. swaps the dummy weapon model's
+	/// material array for a regular one, versus an invisible one that only renders
+	/// a shadow
+	/// </summary>
+	public void RefreshMaterials(bool visible = true)
+	{
+
+		if (Weapon3rdPersonInvisibleMaterial == null)
+			return;
+
+		if (Weapon3rdPersonModelRenderer == null)
+			return;
+
+		if (Weapon3rdPersonModelRenderer.materials == null)
+			return;
+
+		if (m_VisibleMaterials == null)
+			return;
+
+		if (m_InvisibleMaterials == null)
+			return;
+
+		if (visible)
+			Weapon3rdPersonModelRenderer.materials = m_VisibleMaterials;		// 3rd person: render dummy weapon normally
+		else
+			Weapon3rdPersonModelRenderer.materials = m_InvisibleMaterials;		// 1st person: render dummy weapon invisible, but casting a shadow
 
 	}
 

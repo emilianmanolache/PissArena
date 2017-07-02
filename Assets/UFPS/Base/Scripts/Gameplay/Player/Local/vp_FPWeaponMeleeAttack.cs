@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPWeaponMeleeAttack.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:		a test class devised to see if melee combat would be
 //						feasible using springs and without 'real' animations.
@@ -16,9 +16,12 @@
 //						component (NOTE: _not_ a vp_FPWeaponShooter).
 //						the only parameter that should be set on the weapon shooter
 //						component should be the 'ProjectilePrefab', which should be
-//						a gameobject sporting a vp_HitscanBullet with a short (~1m)
+//						a gameobject sporting a vp_Bullet with a short (~1m)
 //						range and no decal. the rest of its parameters will be auto
 //						synced with the vp_FPWeaponMeleeAttack component at runtime.
+//	
+//						ITERATION 3: vp_HitscanBullet is obsolete and this script
+//						now requires a vp_Bullet (which might be a vp_HitscanBullet)
 //						
 ///////////////////////////////////////////////////////////////////////////////// 
 
@@ -143,18 +146,27 @@ public class vp_FPWeaponMeleeAttack : vp_Component
 		}
 	}
 
-	protected vp_HitscanBullet m_HitscanBullet = null;
-	public vp_HitscanBullet HitscanBullet
+	[System.Obsolete("Please use the 'Bullet' parameter instead.")]
+	public vp_Bullet HitscanBullet
 	{
 		get
 		{
-			if (m_HitscanBullet == null && (WeaponShooter != null) && (WeaponShooter.ProjectilePrefab != null))
+			return Bullet;
+		}
+	}
+		
+	protected vp_Bullet m_Bullet = null;
+	public vp_Bullet Bullet
+	{
+		get
+		{
+			if (m_Bullet == null && (WeaponShooter != null) && (WeaponShooter.ProjectilePrefab != null))
 			{
-				m_HitscanBullet = WeaponShooter.ProjectilePrefab.GetComponent<vp_HitscanBullet>();
-				if (m_HitscanBullet == null)
-					Debug.LogWarning("Warning (" + this + ") ProjectilePrefab of the WeaponShooter has no 'vp_Hitscanbullet' (this melee weapon won't be able to do damage).");
+				m_Bullet = WeaponShooter.ProjectilePrefab.GetComponent<vp_Bullet>();
+				if (m_Bullet == null)
+					Debug.LogWarning("Warning (" + this + ") ProjectilePrefab of the WeaponShooter has no vp_Bullet-derived component (this melee weapon won't be able to do damage).");
 			}
-			return m_HitscanBullet;
+			return m_Bullet;
 		}
 	}
 
@@ -182,7 +194,11 @@ public class vp_FPWeaponMeleeAttack : vp_Component
 			if (WeaponShooter.ProjectilePrefab == null)
 				Debug.LogWarning("Warning (" + this + ") WeaponShooter for this melee weapon has no 'ProjectilePrefab' (it won't be able to do damage).");
 
+			if (WeaponShooter.Weapon != null)
+				WeaponShooter.Weapon.AnimationType = (int)vp_Weapon.Type.Melee;
+
 		}
+
 
 	}
 
@@ -276,7 +292,7 @@ public class vp_FPWeaponMeleeAttack : vp_Component
 				Ray ray = new Ray(new Vector3(FPController.Transform.position.x, FPCamera.Transform.position.y,
 												FPController.Transform.position.z), FPCamera.Transform.forward);
 
-				Physics.Raycast(ray, out hit, (HitscanBullet != null ? HitscanBullet.Range : 2), vp_Layer.Mask.BulletBlockers);
+				Physics.Raycast(ray, out hit, (Bullet != null ? Bullet.Range : 2), vp_Layer.Mask.BulletBlockers);
 
 				// hit something: perform impact functionality
 				if (hit.collider != null)

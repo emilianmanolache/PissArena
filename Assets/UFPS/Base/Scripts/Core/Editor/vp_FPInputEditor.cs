@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPInputEditor.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	custom inspector for the vp_FPInput class
 //
@@ -162,6 +162,8 @@ public class vp_FPInputEditor : Editor
 		{
 
 			m_Component.MouseLookSensitivity = EditorGUILayout.Vector2Field("Sensitivity", m_Component.MouseLookSensitivity);
+			m_Component.MouseLookMutePitch = EditorGUILayout.Toggle("Mute Pitch", m_Component.MouseLookMutePitch);
+			m_Component.MouseLookMuteYaw = EditorGUILayout.Toggle("Mute Yaw", m_Component.MouseLookMuteYaw);
 			m_Component.MouseLookSmoothSteps = EditorGUILayout.IntSlider("Smooth Steps", m_Component.MouseLookSmoothSteps, 1, 20);
 			m_Component.MouseLookSmoothWeight = EditorGUILayout.Slider("Smooth Weight", m_Component.MouseLookSmoothWeight, 0, 1);
 			m_Component.MouseLookAcceleration = EditorGUILayout.Toggle("Acceleration", m_Component.MouseLookAcceleration);

@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_PlayerEventHandler.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this class declares events for communication between behaviours
 //					that make up a basic player object. it also binds several object
@@ -112,14 +112,12 @@ public class vp_PlayerEventHandler : vp_StateEventHandler
 	public vp_Message<Vector3> ForceImpact;
 	public vp_Message Stop;
 	public vp_Value<Transform> Platform;
+	public vp_Value<Vector3> PositionOnPlatform;
+	public vp_Value<bool> Grounded;
 
 	// interaction
 	public vp_Value<vp_Interactable> Interactable;
 	public vp_Value<bool> CanInteract;
-
-	// ground surface
-	public vp_Value<Texture> GroundTexture;
-	public vp_Value<vp_SurfaceIdentifier> SurfaceType;
 
 
 	/// <summary>

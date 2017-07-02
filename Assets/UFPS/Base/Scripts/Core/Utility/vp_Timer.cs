@@ -1,20 +1,15 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Timer.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	vp_Timer is a script extension for delaying (scheduling) methods
 //					in Unity. it supports arguments, delegates, repetition with
 //					intervals, infinite repetition, pausing and canceling, and uses
 //					an object pool in order to feed the garbage collector with an
 //					absolute minimum amount of data
-//
-//					NOTE: this class is also part of the 'visionTimer' package, a
-//					complete time scripting framework for Unity. check it out if you
-//					want to do things like time bombs, stopwatches, analog clocks etc.
-//					http://u3d.as/content/vision-punk/vision-timer/3xc
 //
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -24,9 +19,12 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 
-
 #if (UNITY_EDITOR && DEBUG)
 using System.Diagnostics;
+#endif
+
+#if UNITY_5_4_OR_NEWER
+using UnityEngine.SceneManagement;
 #endif
 
 
@@ -111,7 +109,31 @@ public class vp_Timer : MonoBehaviour
 		}
 
 	}
-	
+
+
+
+	/// <summary>
+	/// 
+	/// </summary>
+	private void OnEnable()
+	{
+#if UNITY_5_4_OR_NEWER
+		SceneManager.sceneLoaded += OnLevelLoad;
+#endif
+	}
+
+
+	/// <summary>
+	/// 
+	/// </summary>
+	private void OnDisable()
+	{
+#if UNITY_5_4_OR_NEWER
+		SceneManager.sceneLoaded -= OnLevelLoad;
+#endif
+	}
+
+
 
 	/// <summary>
 	/// in Update the active list is looped every frame, executing
@@ -396,7 +418,11 @@ public class vp_Timer : MonoBehaviour
 	/// upon level load, cancels every currently active timer
 	/// whose 'CancelOnLoad' parameter is true (default)
 	/// </summary>
+#if UNITY_5_4_OR_NEWER
+	private void OnLevelLoad(Scene scene, LoadSceneMode mode)
+#else
 	private void OnLevelWasLoaded()
+#endif
 	{
 
 		for (int t = vp_Timer.m_Active.Count - 1; t > -1; t--)
@@ -611,6 +637,7 @@ public class vp_Timer : MonoBehaviour
 
 		}
 #endif
+
 
 		/// <summary>
 		/// standard event error method

@@ -1,13 +1,13 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_UnitBankInstance.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this internal class is used to represent a unitbank item record
 //					inside the inventory. NOTE: it is not to be confused with the
-//					concept of an in-world item gameobject instance (!)
+//					concept of an in-world item (pickup) gameobject instance (!)
 //
 /////////////////////////////////////////////////////////////////////////////////
 

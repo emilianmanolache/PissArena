@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPWeaponHandler.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	weapon handler logic that is specific to a local first person
 //					player should be added to this script
@@ -27,6 +27,9 @@ public class vp_FPWeaponHandler : vp_WeaponHandler
 	{
 
 		if (!ReloadAutomatically)
+			return false;
+
+		if (CurrentWeapon == null)
 			return false;
 
 		if (CurrentWeapon.AnimationType == (int)vp_Weapon.Type.Melee)

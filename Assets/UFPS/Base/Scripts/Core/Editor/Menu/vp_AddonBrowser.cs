@@ -1,12 +1,12 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_AddonBrowser.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
-//	description:	a window that loads a list of UFPS add-ons from visionpunk.com
-//					and presents them as a list of icons that launch the Asset Store
+//	description:	a window that loads a list of UFPS add-ons from opsive.com and
+//					presents them as a list of icons that launch the Asset Store
 //					page for the respective product when clicked
 //
 /////////////////////////////////////////////////////////////////////////////////
@@ -45,7 +45,6 @@ public class vp_AddonBrowser : EditorWindow
 		public string IconPath = "";
 		public Texture2D Icon = null;
 		public string Id = "";
-		public string AssetStorePath = "";
 		public OpenFunc Open = null;
 		public WWW www = null;
 		public float Alpha = 0.0f;
@@ -59,16 +58,15 @@ public class vp_AddonBrowser : EditorWindow
 		{
 			Name = name;
 			Id = id;
-			IconPath = "http://www.visionpunk.com/content/assets/ufps/editor/addonicons/" + Id + ".png";
+			IconPath = "http://www.opsive.com/assets/UFPS/content/assets/ufps/editor/addonicons/" + Id + ".png";
 			www = new WWW(IconPath);
-			if(!name.Contains("VisionPunk"))
-				AssetStorePath = "content/" + Id;
-			else
-				AssetStorePath = "publisher/" + Id;
-			Open = delegate()
-			{
-				UnityEditorInternal.AssetStore.Open(AssetStorePath);
-			};
+			Open = delegate() {
+                if (!name.Contains("Opsive")) {
+                    UnityEditorInternal.AssetStore.Open("content/" + Id);
+                } else {
+                    Application.OpenURL("https://www.assetstore.unity3d.com/#!/publisher/" + Id);
+                }
+            };
 		}
 
 	}
@@ -94,7 +92,7 @@ public class vp_AddonBrowser : EditorWindow
 
 		m_ProductsReady = false;
 		m_IconsReady = false;
-		m_ProductFile = new WWW("http://www.visionpunk.com/content/assets/ufps/editor/addons.txt");
+		m_ProductFile = new WWW("http://www.opsive.com/assets/UFPS/content/assets/ufps/editor/addons.txt");
 
 	}
 
@@ -210,7 +208,7 @@ public class vp_AddonBrowser : EditorWindow
 
 		EditorGUILayout.BeginVertical();
 		GUI.color = new Color(1.0f, 1.0f, 1.0f, icon.Alpha);
-		if (GUILayout.Button(new GUIContent(icon.Icon, (!icon.Name.Contains("VisionPunk") ? "Click for info, screens & videos" : "View all of our Unity products")), "Label"))
+		if (GUILayout.Button(new GUIContent(icon.Icon, (!icon.Name.Contains("Opsive") ? "Click for info, screens & videos" : "View all of our Unity products")), "Label"))
 			icon.Open();
 		GUILayout.Label(icon.Name, IconLabelStyle);
 		GUI.color = Color.white;

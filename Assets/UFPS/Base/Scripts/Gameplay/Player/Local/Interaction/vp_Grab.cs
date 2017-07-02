@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Grab.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	This script allows the player to grab objects in the game world
 //					as long as they have a collider and a rigidbody. It forces the
@@ -88,6 +88,28 @@ public class vp_Grab : vp_Interactable
 		}
 	}
 
+	protected Rigidbody m_Rigidbody = null;
+	protected Rigidbody Rigidbody
+	{
+		get
+		{
+			if (m_Rigidbody == null)
+				m_Rigidbody = GetComponent<Rigidbody>();
+			return m_Rigidbody;
+		}
+	}
+	
+	protected Collider m_Collider = null;
+	protected Collider Collider
+	{
+		get
+		{
+			if (m_Collider == null)
+				m_Collider = GetComponent<Collider>();
+			return m_Collider;
+		}
+	}
+
 
 	/// <summary>
 	/// 
@@ -97,15 +119,15 @@ public class vp_Grab : vp_Interactable
 
 		base.Start();
 
-		if (!GetComponent<Rigidbody>() || !GetComponent<Collider>())
+		if ((Rigidbody == null) || (Collider == null))
 			this.enabled = false;
 
 		// cache rigidbody vars
-		if (GetComponent<Rigidbody>() != null)
+		if (Rigidbody != null)
 		{
-			m_DefaultGravity = GetComponent<Rigidbody>().useGravity;
-			m_DefaultDrag = m_Transform.GetComponent<Rigidbody>().drag;
-			m_DefaultAngularDrag = m_Transform.GetComponent<Rigidbody>().angularDrag;
+			m_DefaultGravity = Rigidbody.useGravity;
+			m_DefaultDrag = Rigidbody.drag;
+			m_DefaultAngularDrag = Rigidbody.angularDrag;
 		}
 
 		// for normal interaction type
@@ -367,16 +389,16 @@ public class vp_Grab : vp_Interactable
 			StartCoroutine("Fetch");
 
 		// alter this object's physics to allow proper carrying motion
-		if (m_Transform.GetComponent<Rigidbody>() != null)
+		if (Rigidbody != null)
 		{
-			m_Transform.GetComponent<Rigidbody>().useGravity = false;
-			m_Transform.GetComponent<Rigidbody>().drag = (Stiffness * 60.0f);
-			m_Transform.GetComponent<Rigidbody>().angularDrag = (Stiffness * 60.0f);
+			Rigidbody.useGravity = false;
+			Rigidbody.drag = (Stiffness * 60.0f);
+			Rigidbody.angularDrag = (Stiffness * 60.0f);
 		}
 
 		// make player ignore collisions with this object
-		if (m_Controller.Transform.GetComponent<Collider>().enabled && m_Transform.GetComponent<Collider>().enabled)
-			Physics.IgnoreCollision(m_Controller.Transform.GetComponent<Collider>(), m_Transform.GetComponent<Collider>(), true);
+		if (m_Controller.Transform.GetComponent<Collider>().enabled && Collider.enabled)
+			Physics.IgnoreCollision(m_Controller.Transform.GetComponent<Collider>(), Collider, true);
 
 		// parent this object to the camera, and make its angle the
 		// initial angle it will have in our hands. NOTE: interaction
@@ -407,18 +429,18 @@ public class vp_Grab : vp_Interactable
 		m_Player.SetWeapon.TryStart(m_LastWeaponEquipped);
 
 		// reset the object back to it's defaults
-		if (m_Transform.GetComponent<Rigidbody>() != null)
+		if (Rigidbody != null)
 		{
-			m_Transform.GetComponent<Rigidbody>().useGravity = m_DefaultGravity;
-			m_Transform.GetComponent<Rigidbody>().drag = m_DefaultDrag;
-			m_Transform.GetComponent<Rigidbody>().angularDrag = m_DefaultAngularDrag;
+			Rigidbody.useGravity = m_DefaultGravity;
+			Rigidbody.drag = m_DefaultDrag;
+			Rigidbody.angularDrag = m_DefaultAngularDrag;
 		}
 
 		// allow player to collide with this object again
 		if (!m_Player.Dead.Active)	// NOTE: doing the below while player is dead will cause a crash
 		{
-			if (vp_Utility.IsActive(m_Transform.gameObject) && m_Controller.Transform.GetComponent<Collider>().enabled && m_Transform.GetComponent<Collider>().enabled)
-				Physics.IgnoreCollision(m_Controller.Transform.GetComponent<Collider>(), m_Transform.GetComponent<Collider>(), false);
+			if (vp_Utility.IsActive(m_Transform.gameObject) && m_Controller.Transform.GetComponent<Collider>().enabled && Collider.enabled)
+				Physics.IgnoreCollision(m_Controller.Transform.GetComponent<Collider>(), Collider, false);
 		}
 
 		Vector3 finalRotation = m_Transform.eulerAngles;
@@ -427,10 +449,10 @@ public class vp_Grab : vp_Interactable
 		m_Transform.eulerAngles = finalRotation;
 
 		// reset object's velocity
-		if (m_Transform.GetComponent<Rigidbody>() != null)
+		if (Rigidbody != null)
 		{
-			m_Transform.GetComponent<Rigidbody>().velocity = Vector3.zero;
-			m_Transform.GetComponent<Rigidbody>().angularVelocity = Vector3.zero;
+			Rigidbody.velocity = Vector3.zero;
+			Rigidbody.angularVelocity = Vector3.zero;
 		}
 
 		// throw the object if fire button used
@@ -438,11 +460,12 @@ public class vp_Grab : vp_Interactable
 		{
 
 			vp_AudioUtility.PlayRandomSound(m_Audio, ThrowSounds, SoundsPitch);
-			if (m_Transform.GetComponent<Rigidbody>() != null)
+			if (Rigidbody != null)
 			{
-				m_Transform.GetComponent<Rigidbody>().AddForce(m_Player.Velocity.Get() + FPPlayer.CameraLookDirection.Get() * ThrowStrength, ForceMode.Impulse);
+				Rigidbody.AddForce(m_Player.Velocity.Get().normalized + m_Camera.transform.forward.normalized * ThrowStrength, ForceMode.Impulse);
+				transform.position += m_Camera.transform.forward.normalized * 0.5f;
 				if (AllowThrowRotation)
-					m_Transform.GetComponent<Rigidbody>().AddTorque(m_Camera.Transform.forward * (Random.value > 0.5f ? 0.5f : -0.5f) +
+					Rigidbody.AddTorque(m_Camera.Transform.forward * (Random.value > 0.5f ? 0.5f : -0.5f) +
 													m_Camera.Transform.right * (Random.value > 0.5f ? 0.5f : -0.5f),
 													ForceMode.Impulse);
 			}
@@ -452,8 +475,8 @@ public class vp_Grab : vp_Interactable
 		{
 
 			vp_AudioUtility.PlayRandomSound(m_Audio, DropSounds, SoundsPitch);
-			if (m_Transform.GetComponent<Rigidbody>() != null)
-				m_Transform.GetComponent<Rigidbody>().AddForce(m_Player.Velocity.Get() + FPPlayer.CameraLookDirection.Get(), ForceMode.Impulse);
+			if (Rigidbody != null)
+				Rigidbody.AddForce(m_Player.Velocity.Get() + FPPlayer.CameraLookDirection.Get(), ForceMode.Impulse);
 
 		}
 

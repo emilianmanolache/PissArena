@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_StateEventHandler.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a version of vp_EventHandler that is aware of the vp_Component
 //					state system and can bind its own actions to corresponding
@@ -14,11 +14,11 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-
 public abstract class vp_StateEventHandler : vp_EventHandler
 {
 
 	List<vp_Component> m_StateTargets = new List<vp_Component>();
+	List<vp_Activity> m_Activities = new List<vp_Activity>();
 
 
 	/// <summary>
@@ -29,18 +29,9 @@ public abstract class vp_StateEventHandler : vp_EventHandler
 
 		base.Awake();
 
-		// fetch all vp_Components that top their own hierarchy in the same
-		// hierarchy as the event handler. these will be used to block states
-		// recursively (down the hierarchy)
-		foreach (vp_Component c in transform.root.GetComponentsInChildren<vp_Component>(true))
-		{
-			if (c.Parent == null
-				|| (c.Parent.GetComponent<vp_Component>() == null)
-				)
-			{
-				m_StateTargets.Add(c);
-			}
-		}
+		StoreStateTargets();
+
+		StoreActivities();
 
 	}
 
@@ -78,7 +69,7 @@ public abstract class vp_StateEventHandler : vp_EventHandler
 				c.SetState(s, true, true);
 			}
 		};
-		// NOTE: this delegate currently won't show up in an event dump
+		// NOTE: this delegate won't show up in an event dump
 
 	}
 
@@ -103,7 +94,46 @@ public abstract class vp_StateEventHandler : vp_EventHandler
 				c.SetState(s, false, true);
 			}
 		};
-		// NOTE: this delegate currently won't show up in an event dump
+		// NOTE: this delegate won't show up in an event dump
+
+	}
+
+
+	/// <summary>
+	/// fetches all vp_Components that top their own hierarchy in the same
+	/// hierarchy as the event handler. these will be used to block states
+	/// recursively (down the hierarchy)
+	/// </summary>
+	protected void StoreStateTargets()
+	{
+
+		foreach (vp_Component c in transform.root.GetComponentsInChildren<vp_Component>(true))
+		{
+			if (c.Parent == null
+				|| (c.Parent.GetComponent<vp_Component>() == null)
+				)
+			{
+				m_StateTargets.Add(c);
+			}
+		}
+
+	}
+
+
+	/// <summary>
+	/// stores all the known events of type vp_Activity in a list for
+	/// quick iteration later
+	/// </summary>
+	protected void StoreActivities()
+	{
+
+		for (int e = 0; e < m_Events.Count; e++)
+		{
+			if ((m_Events[e] is vp_Activity) || (m_Events[e].Type.BaseType == typeof(vp_Activity)))
+				m_Activities.Add(m_Events[e] as vp_Activity);
+		}
+
+		//Debug.Log("found: " + m_Activities.Count + " activities");
 
 	}
 
@@ -115,17 +145,24 @@ public abstract class vp_StateEventHandler : vp_EventHandler
 	public void RefreshActivityStates()
 	{
 
-		foreach (vp_Event a in m_HandlerEvents.Values)
-		{
+		// NOTE: we must keep track of the top target transforms we have already
+		// iterated recursively in order to avoid iterating components on child
+		// transforms once for every component on the top transform
+		Dictionary<Transform, bool> alreadyRecursedTargets = new Dictionary<Transform, bool>();
 
-			if ((a is vp_Activity) || (a.GetType().BaseType == typeof(vp_Activity)))	// TODO: optimize
+		for (int a = 0; a < m_Activities.Count; a++)
+		{
+			alreadyRecursedTargets.Clear();
+			for (int t = 0; t < m_StateTargets.Count; t++)
 			{
-				foreach (vp_Component c in m_StateTargets)
-				{
-					c.SetState(a.EventName, ((vp_Activity)a).Active, true, false);
-				}
+				bool alreadyRecursed = alreadyRecursedTargets.ContainsKey(m_StateTargets[t].transform);
+				//Debug.Log("\t\t\t\t---------------- " + c.GetType() + ", " + activity.EventName.ToUpper() + " ----------------");
+				m_StateTargets[t].SetState(m_Activities[a].EventName, m_Activities[a].Active, !alreadyRecursed, false);
+				if (!alreadyRecursed)
+					alreadyRecursedTargets.Add(m_StateTargets[t].transform, true);
 			}
 		}
+
 
 	}
 
@@ -146,8 +183,12 @@ public abstract class vp_StateEventHandler : vp_EventHandler
 
 
 	/// <summary>
-	/// sets a state on all component states bound to this event
-	/// handler's activities
+	/// sets a state on all components bound to this event handler's activities.
+	/// NOTE: for forcing states, instead of vp_Activity -> 'TryStart' and 'TryStop',
+	/// you would typically instead use vp_Activity -> 'Start' and 'Stop'. this method
+	/// is just an optional way of forcing a state onto components without involving
+	/// the player activity event. can be used for cutscenes, for freezing the player,
+	/// and for other systems that must automatically force a player state on or off
 	/// </summary>
 	public void SetState(string state, bool setActive = true, bool recursive = true, bool includeDisabled = false)
 	{

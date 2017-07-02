@@ -1,16 +1,16 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPPlayerEventHandler.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this class declares events for communication between behaviours
 //					that make up a LOCAL, FIRST PERSON PLAYER.
 //					
 //					IMPORTANT: this class is NOT intended for use on a REMOTE player,
-//					AI player etc., since such players have no access to input, camera
-//					HUI, GUI or first person weapon systems. universal events (dealing
+//					AI player etc., since such players have no access to input, camera,
+//					HUD, GUI or first person weapon systems. universal events (dealing
 //					with physics and activities that are non-exclusive to a first person
 //					player) can be found in the parent class: vp_PlayerEventHandler
 //
@@ -18,6 +18,10 @@
 
 using System;
 using UnityEngine;
+
+#if UNITY_5_4_OR_NEWER
+using UnityEngine.SceneManagement;
+#endif
 
 public class vp_FPPlayerEventHandler : vp_PlayerEventHandler
 {
@@ -63,6 +67,62 @@ public class vp_FPPlayerEventHandler : vp_PlayerEventHandler
 	public vp_Value<string> CurrentWeaponClipType;
 	public vp_Attempt<object> AddAmmo;
 	public vp_Attempt RemoveClip;
+
+
+	/// <summary>
+	/// on startup, cache the local player and all of its standard components
+	/// for use by the globally accessible 'vp_LocalPlayer' wrapper
+	/// </summary>
+	protected override void Awake()
+	{
+
+		base.Awake();
+
+		vp_LocalPlayer.Refresh();
+
+	}
+
+
+	/// <summary>
+	/// 
+	/// </summary>
+	private void OnEnable()
+	{
+
+#if UNITY_5_4_OR_NEWER
+		SceneManager.sceneLoaded += OnLevelLoad;
+#endif
+
+	}
+
+
+	/// <summary>
+	/// 
+	/// </summary>
+	private void OnDisable()
+	{
+
+#if UNITY_5_4_OR_NEWER
+		SceneManager.sceneLoaded -= OnLevelLoad;
+#endif
+
+	}
+
+
+	/// <summary>
+	/// on level load, cache the local player and all of its standard components
+	/// for use by the globally accessible 'vp_LocalPlayer' wrapper
+	/// </summary>
+#if UNITY_5_4_OR_NEWER
+	protected virtual void OnLevelLoad(Scene scene, LoadSceneMode mode)
+#else
+	protected virtual void OnLevelWasLoaded()
+#endif
+	{
+
+		vp_LocalPlayer.Refresh();
+
+	}
 
 
 }

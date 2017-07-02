@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_TargetEvent.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this class allows the sending of generic events to a single, specific
 //					object. events can have 0-3 arguments and a return value.
@@ -251,7 +251,7 @@ internal static class vp_TargetEventHandler
 
 			for (int v = invList.Length - 1; v > -1; v--)
 			{
-				if (invList[v].Target == component)
+				if ((Component)invList[v].Target == component)
 				{
 
 					// unregister the whole event

@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Explosion.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	death effect for exploding objects. applies damage and a
 //					physical force to all rigidbodies and players within its
@@ -29,12 +29,17 @@ public class vp_Explosion : MonoBehaviour
 	public bool AllowCover = false;					// if true, damage can only be done with line of sight between explosion center and target top or center
 	public bool AllowMultiDamage = false;			// if true, this explosion can damage multiple sub-objects under the same root object at the same time. if false, only the first damage handler or 'Damage' method found will trigger
 	public float CameraShake = 1.0f;				// how much of a shockwave impulse to apply to the camera
+	public vp_DamageInfo.DamageMode DamageMode = vp_DamageInfo.DamageMode.DamageHandler;	// should the explosion transmit UFPS damage, or a Unity Message, or both
 	public string DamageMessageName = "Damage";		// user defined name of damage method on affected object
 														// TIP: this can be used to apply different types of damage, i.e
 														// magical, freezing, poison, electric
-	public bool RequireDamageHandler = true;		// if true (default) the target must have a vp_DamageHandler-derived component on it.
-													// this is an optimization to avoid sending messages to large numbers of colliders.
-													// if false, the explosion will broadcast a unity message 'Damage' with a float argument to any collider affected
+	[System.Obsolete("Please use 'DamageMode instead.")]
+	public bool RequireDamageHandler				// deprecated (retained for external script backwards compatibility only)
+	{
+		get { return ((DamageMode == vp_DamageInfo.DamageMode.DamageHandler) || (DamageMode == vp_DamageInfo.DamageMode.Both)); }
+		set { DamageMode = (value ? vp_DamageInfo.DamageMode.DamageHandler : vp_DamageInfo.DamageMode.UnityMessage); }
+	}
+
 	protected bool m_HaveExploded = false;			// when true, the explosion is flagged for removal / recycling
 	
 	// sound
@@ -57,6 +62,10 @@ public class vp_Explosion : MonoBehaviour
 	protected Dictionary<Transform, object> m_RootTransformsHitByThisExplosion = new Dictionary<Transform, object>(50);
 
 	protected static vp_DamageHandler m_TargetDHandler = null;
+
+	#if UNITY_EDITOR
+	private bool m_DidWarnAboutBothMethodName = false;
+	#endif
 
 	// --- misc properties ---
 
@@ -158,7 +167,13 @@ public class vp_Explosion : MonoBehaviour
 		if (m_HaveExploded)
 		{
 			if (!Audio.isPlaying)
+			{
+				// restore things in case explosion is pooled (re-used)
+				m_HaveExploded = false;
+				m_RootTransformsHitByThisExplosion.Clear();
+				// destroy the explosion via vp_PoolManager, if present
 				vp_Utility.Destroy(gameObject);
+			}
 			return;
 		}
 
@@ -192,9 +207,6 @@ public class vp_Explosion : MonoBehaviour
 			}
 		}
 
-		// clear the list of affected objects in case this explosion has been pooled
-		m_RootTransformsHitByThisExplosion.Clear();
-
 		// apply shockwave to all rigidbodies and players within range, but
 		// ignore small and walk-thru objects such as debris, triggers and water
 		Collider[] colliders = Physics.OverlapSphere(Transform.position, Radius, vp_Layer.Mask.IgnoreWalkThru);
@@ -206,7 +218,7 @@ public class vp_Explosion : MonoBehaviour
 
 			m_DistanceModifier = 0.0f;
 
-			if ((hit != null) && (hit != this.GetComponent<Collider>()))
+			if ((hit != null) && (hit.transform.root != transform.root))
 			{
 
 				m_TargetCollider = hit;
@@ -234,12 +246,12 @@ public class vp_Explosion : MonoBehaviour
 					if (!m_RootTransformsHitByThisExplosion.ContainsKey(m_TargetCollider.transform.root))
 					{
 						m_RootTransformsHitByThisExplosion.Add(m_TargetCollider.transform.root, null);	// remember that we have processed this target
-						DoDamage();
+						TryDamage();
 					}
 				}
 				else
 				{
-					DoDamage();
+					TryDamage();
 				}
 
 				//Debug.Log(m_TargetTransform.name + Time.time);	// SNIPPET: to dump affected objects
@@ -258,24 +270,36 @@ public class vp_Explosion : MonoBehaviour
 
 
 	/// <summary>
-	/// 
+	/// attempts to do damage using a regular Unity-message, and / or more advanced
+	/// UFPS format damage (whichever is supported by the bullet and target)
 	/// </summary>
-	void DoDamage()
+	protected virtual void TryDamage()
 	{
 
-		m_TargetDHandler = vp_DamageHandler.GetDamageHandlerOfCollider(m_TargetCollider);
-		if (m_TargetDHandler != null)
+		// send primitive damage as UnityMessage. this allows support for many third party
+		// systems (simply use a 'void Damage(float)' method in target MonoBehaviours)
+		if ((DamageMode == vp_DamageInfo.DamageMode.UnityMessage)
+			|| (DamageMode == vp_DamageInfo.DamageMode.Both))
 		{
-			// target has a known damagehandler -> send damage in UFPS format.
-			// this works with targets that have a vp_DamageHandler (or derived) component
-			m_TargetDHandler.Damage(new vp_DamageInfo((DistanceModifier * Damage), Source, OriginalSource, vp_DamageInfo.DamageType.Explosion));
-		}
-		else if (!RequireDamageHandler)
-		{
-			// target is known to have no damagehandler -> send damage the 'Unity way'.
-			// this works with targets that have a custom script with the standard
-			// method: "Damage(float damage)"
 			m_TargetCollider.gameObject.BroadcastMessage(DamageMessageName, (DistanceModifier * Damage), SendMessageOptions.DontRequireReceiver);
+#if UNITY_EDITOR
+			if (!m_DidWarnAboutBothMethodName
+				&& (DamageMessageName == "Damage")
+				&& (vp_DamageHandler.GetDamageHandlerOfCollider(m_TargetCollider) != null))
+			{
+				Debug.LogWarning("Warning (" + this + ") Target object has a vp_DamageHandler. When damaging it with DamageMode: 'UnityMessage' or 'Both', you probably want to change 'DamageMessageName' to something other than 'Damage', or too much damage might be applied.");
+				m_DidWarnAboutBothMethodName = true;
+			}
+#endif
+		}
+
+		// send damage in UFPS format. this allows different damage types, and tracking damage source
+		if ((DamageMode == vp_DamageInfo.DamageMode.DamageHandler)
+			|| (DamageMode == vp_DamageInfo.DamageMode.Both))
+		{
+			m_TargetDHandler = vp_DamageHandler.GetDamageHandlerOfCollider(m_TargetCollider);
+			if (m_TargetDHandler != null)
+				m_TargetDHandler.Damage(new vp_DamageInfo((DistanceModifier * Damage), Source, OriginalSource, vp_DamageInfo.DamageType.Explosion));
 		}
 
 	}
@@ -299,18 +323,18 @@ public class vp_Explosion : MonoBehaviour
 
 		// --- middle / hips ---
 		m_Ray.direction = (m_TargetCollider.bounds.center - Transform.position).normalized;
-		if (Physics.Raycast(m_Ray, out m_RaycastHit, Radius + 1.0f) && (m_RaycastHit.collider == m_TargetCollider))
+		if (Physics.Raycast(m_Ray, out m_RaycastHit, Radius + 1.0f) && (m_RaycastHit.transform.root.GetComponent<Collider>() == m_TargetCollider))
 			return false;	// target's center / waist exposed
 
 		// --- top / head ---
 		m_Ray.direction = ((vp_3DUtility.HorizontalVector(m_TargetCollider.bounds.center) + (Vector3.up * (m_TargetCollider.bounds.max.y))) - Transform.position).normalized;
-		if (Physics.Raycast(m_Ray, out m_RaycastHit, Radius + 1.0f) && (m_RaycastHit.collider == m_TargetCollider))
+		if (Physics.Raycast(m_Ray, out m_RaycastHit, Radius + 1.0f) && (m_RaycastHit.transform.root.GetComponent<Collider>() == m_TargetCollider))
 			return false;	// target's top / head exposed
 
 		// SNIPPET: tracking explosion damage against feet can end up somewhat
 		// unintuitive in-game. for example, getting killed by explosive force
 		// reaching a player's feet along the ground under a car may be simply
-		// confusing ("wait-what-happened"), but uncomment this to allow for it:
+		// confusing ("wait-what-happened") but uncomment this to allow for it:
 			// --- bottom / feet ---
 			//m_Ray.direction = ((vp_3DUtility.HorizontalVector(m_TargetCollider.bounds.center) + (Vector3.up * m_TargetCollider.bounds.min.y)) - Transform.position).normalized;
 			//if (Physics.Raycast(m_Ray, out m_RaycastHit, Radius + 1.0f) && (m_RaycastHit.collider == m_TargetCollider))
@@ -348,7 +372,7 @@ public class vp_Explosion : MonoBehaviour
 
 
 	/// <summary>
-	/// applies force to a target using UFPS camera & controller physics.
+	/// applies force to a target using UFPS camera and controller physics.
 	/// this should only affect human players (local or remote) and possibly
 	/// AI that use the UFPS body system
 	/// </summary>

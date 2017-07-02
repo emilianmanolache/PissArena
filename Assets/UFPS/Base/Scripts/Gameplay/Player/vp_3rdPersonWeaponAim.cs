@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_3rdPersonWeaponAim.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this script can be added on a 3rd person weapon object to make the
 //					character's main hand & weapon aim more accurately towards the
@@ -188,7 +188,7 @@ public class vp_3rdPersonWeaponAim : MonoBehaviour
 	protected virtual void Awake()
 	{
 
-#if UNITY_IPHONE || UNITY_ANDROID
+#if UNITY_IOS || UNITY_ANDROID
 		Debug.LogError("Error ("+this+") This script from base UFPS is intended for desktop and not supported on mobile. Are you attempting to use a PC/Mac player prefab on IOS/Android?");
 		Component.DestroyImmediate(this);
 		return;
@@ -253,7 +253,10 @@ public class vp_3rdPersonWeaponAim : MonoBehaviour
 		}
 
 		Quaternion gunRotBak = Transform.rotation;
-		Transform.rotation = Quaternion.LookRotation(Player.AimDirection.Get());
+		if(Player.IsLocal.Get())
+			Transform.rotation = Quaternion.LookRotation((WeaponHandler.CurrentWeapon.Weapon3rdPersonModel.transform.position - Player.LookPoint.Get()).normalized); // ensure weapon is pointed correctly for local player shadow
+		else
+			Transform.rotation = Quaternion.LookRotation(Player.AimDirection.Get());	// ensure weapon is pointed correctly for remote players
 		m_WorldDir = Transform.forward;
 		Transform.rotation = gunRotBak;
 

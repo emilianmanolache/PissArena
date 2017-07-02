@@ -1,15 +1,20 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Value.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	event type for getting and setting target script properties.
 //					the generic invocation fields, 'Get' and 'Set', expose their
 //					property counterparts
 //
 /////////////////////////////////////////////////////////////////////////////////
+
+#if (UNITY_IOS || UNITY_WII || UNITY_PS3 || UNITY_PS4 || UNITY_XBOXONE)
+// (see the 'AOT platform' comment in vp_Event.cs for info on this)
+#define AOT
+#endif
 
 using System;
 using System.Reflection;
@@ -23,9 +28,8 @@ using System.Collections.Generic;
 /// </summary>
 public class vp_Value<V> : vp_Event
 {
-	
-#if (!UNITY_IPHONE)
-	// NOTE: see the 'UNITY_IPHONE' comment in vp_Event.cs for info on this
+
+#if (!AOT)
 	protected static T Empty<T>() { return default(T); }
 	protected static void Empty<T>(T value) { }
 #endif
@@ -62,23 +66,25 @@ public class vp_Value<V> : vp_Event
 	protected override void InitFields()
 	{
 
-		m_Fields = new FieldInfo[] {	this.GetType().GetField("Get"),
-										this.GetType().GetField("Set") };
+		m_Fields = new FieldInfo[] {	Type.GetField("Get"),
+										Type.GetField("Set") };
 
 		StoreInvokerFieldNames();
 
 		m_DelegateTypes = new Type[]{	typeof(vp_Value<>.Getter<>),
 									typeof(vp_Value<>.Setter<>)};
 
-		m_DefaultMethods = new MethodInfo[] {	GetStaticGenericMethod(this.GetType(), "Empty", typeof(void), m_ArgumentType),
-												GetStaticGenericMethod(this.GetType(), "Empty", m_ArgumentType, typeof(void))};
+#if (!AOT)
+		m_DefaultMethods = new MethodInfo[] {	GetStaticGenericMethod(Type, "Empty", typeof(void), m_ArgumentType),
+												GetStaticGenericMethod(Type, "Empty", m_ArgumentType, typeof(void))};
+#endif
 
 		Prefixes = new Dictionary<string, int>() { { "get_OnValue_", 0 }, { "set_OnValue_", 1 } };
 
-		if (m_DefaultMethods[0] != null)
+		if ((m_DefaultMethods != null) && (m_DefaultMethods[0] != null))
 			SetFieldToLocalMethod(m_Fields[0], m_DefaultMethods[0], MakeGenericType(m_DelegateTypes[0]));
 
-		if (m_DefaultMethods[1] != null)
+		if ((m_DefaultMethods != null) && (m_DefaultMethods[1] != null))
 			SetFieldToLocalMethod(m_Fields[1], m_DefaultMethods[1], MakeGenericType(m_DelegateTypes[1]));
 	
 	}
@@ -106,10 +112,10 @@ public class vp_Value<V> : vp_Event
 	public override void Unregister(object t)
 	{
 
-		if (m_DefaultMethods[0] != null)
+		if ((m_DefaultMethods != null) && (m_DefaultMethods[0] != null))
 			SetFieldToLocalMethod(m_Fields[0], m_DefaultMethods[0], MakeGenericType(m_DelegateTypes[0]));
 
-		if (m_DefaultMethods[1] != null)
+		if ((m_DefaultMethods != null) && (m_DefaultMethods[1] != null))
 			SetFieldToLocalMethod(m_Fields[1], m_DefaultMethods[1], MakeGenericType(m_DelegateTypes[1]));
 
 		Refresh();

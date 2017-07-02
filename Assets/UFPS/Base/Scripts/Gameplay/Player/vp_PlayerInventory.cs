@@ -1,11 +1,11 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_PlayerInventory.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
-//	description:	a version of vp_Inventory that's aware of the PlayerEventHandler
+//	description:	a version of vp_Inventory that is aware of the PlayerEventHandler
 //					and uses its events
 //
 ///////////////////////////////////////////////////////////////////////////////// 
@@ -21,11 +21,15 @@ public class vp_PlayerInventory : vp_Inventory
 	protected vp_ItemIdentifier m_WeaponIdentifierResult;
 	protected string m_MissingHandlerError = "Error (vp_PlayerInventory) this component must be on the same transform as a vp_PlayerEventHandler + vp_WeaponHandler.";
 
-	protected Dictionary<vp_UnitBankInstance, vp_Weapon> m_UnitBankWeapons = null;
 	protected Dictionary<vp_ItemInstance, vp_Weapon> m_ItemWeapons = null;
 
+	protected Dictionary<vp_ItemType, vp_UnitBankInstance> m_ThrowingWeaponUnitBankInstances = new Dictionary<vp_ItemType, vp_UnitBankInstance>();
+	protected Dictionary<vp_UnitType, vp_UnitBankType> m_ThrowingWeaponUnitBankTypes = new Dictionary<vp_UnitType, vp_UnitBankType>();
+	protected List<vp_UnitType> m_ThrowingWeaponUnitTypes = new List<vp_UnitType>();
+	protected bool m_HaveThrowingWeaponInfo = false;
+
 	protected Dictionary<vp_Weapon, vp_ItemIdentifier> m_WeaponIdentifiers = null;
-	Dictionary<vp_Weapon, vp_ItemIdentifier> WeaponIdentifiers
+	public Dictionary<vp_Weapon, vp_ItemIdentifier> WeaponIdentifiers
 	{
 		get
 		{
@@ -46,7 +50,7 @@ public class vp_PlayerInventory : vp_Inventory
 	}
 
 	protected Dictionary<vp_UnitType, List<vp_Weapon>> m_WeaponsByUnit = null;
-	Dictionary<vp_UnitType, List<vp_Weapon>> WeaponsByUnit
+	public Dictionary<vp_UnitType, List<vp_Weapon>> WeaponsByUnit
 	{
 		get
 		{
@@ -113,6 +117,8 @@ public class vp_PlayerInventory : vp_Inventory
 	{
 		get
 		{
+			if (this == null)
+				return null;
 			if (m_Player == null)
 				m_Player = transform.GetComponent<vp_PlayerEventHandler>();
 			return m_Player;
@@ -286,7 +292,7 @@ public class vp_PlayerInventory : vp_Inventory
 	protected override void DoAddItem(vp_ItemType type, int id)
 	{
 
-		bool alreadyHaveIt = vp_Gameplay.isMultiplayer ? HaveItem(type) : HaveItem(type, id);	// NOTE: id not supported in UFPS multiplayer add-on
+		bool alreadyHaveIt = vp_Gameplay.IsMultiplayer ? HaveItem(type) : HaveItem(type, id);	// NOTE: id not supported in UFPS multiplayer add-on
 
 		base.DoAddItem(type, id);
 
@@ -313,7 +319,7 @@ public class vp_PlayerInventory : vp_Inventory
 	protected override void DoAddUnitBank(vp_UnitBankType unitBankType, int id, int unitsLoaded)
 	{
 
-		bool alreadyHaveIt = vp_Gameplay.isMultiplayer ?
+		bool alreadyHaveIt = vp_Gameplay.IsMultiplayer ?
 			HaveItem(unitBankType)			// NOTE: id not supported in UFPS multiplayer add-on
 			: HaveItem(unitBankType, id);	// singleplayer
 
@@ -337,22 +343,22 @@ public class vp_PlayerInventory : vp_Inventory
 
 		// --- see if we should try to wield a weapon because of this item pickup ---
 
-		if (m_AutoWield.Always)
+		if ((m_AutoWield != null) && m_AutoWield.Always)
 			goto tryWield;
 
-		if (m_AutoWield.IfUnarmed && (WeaponHandler.CurrentWeaponIndex < 1))
+		if ((m_AutoWield != null) && m_AutoWield.IfUnarmed && (WeaponHandler.CurrentWeaponIndex < 1))
 			goto tryWield;
 
-		if (m_AutoWield.IfOutOfAmmo
+		if ((m_AutoWield != null) && m_AutoWield.IfOutOfAmmo
 			&& (WeaponHandler.CurrentWeaponIndex > 0)
 			&& (WeaponHandler.CurrentWeapon.AnimationType != (int)vp_Weapon.Type.Melee)
 			&& m_Player.CurrentWeaponAmmoCount.Get() < 1)
 			goto tryWield;
 
-		if (m_AutoWield.IfNotPresent && !m_AutoWield.FirstTimeOnly && !alreadyHaveIt)
+		if ((m_AutoWield != null) && m_AutoWield.IfNotPresent && !m_AutoWield.FirstTimeOnly && !alreadyHaveIt)
 			goto tryWield;
 
-		if (m_AutoWield.FirstTimeOnly && !haveHadItBefore)
+		if ((m_AutoWield != null) && m_AutoWield.FirstTimeOnly && !haveHadItBefore)
 			goto tryWield;
 
 		return;
@@ -393,11 +399,11 @@ public class vp_PlayerInventory : vp_Inventory
 
 	}
 
-	
+
 	/// <summary>
 	/// 
 	/// </summary>
-	protected virtual vp_Weapon GetWeaponOfItemInstance(vp_ItemInstance itemInstance)
+	public virtual vp_Weapon GetWeaponOfItemInstance(vp_ItemInstance itemInstance)
 	{
 
 		if (m_ItemWeapons == null)
@@ -577,6 +583,122 @@ public class vp_PlayerInventory : vp_Inventory
 	public int GetExtraAmmoForCurrentWeapon()
 	{
 		return OnValue_CurrentWeaponClipCount;
+	}
+
+
+	/// <summary>
+	/// analyzes the player weapons and inventory unitbank and unit types to
+	/// figure out what weapons are throwing weapons, and caches this info
+	/// </summary>
+	protected virtual void StoreThrowingWeaponInfo()
+	{
+
+		foreach (vp_Weapon weapon in WeaponHandler.Weapons)
+		{
+
+			// if the weapon's animation type is 'thrown' ...
+			if (!(weapon.AnimationType == (int)vp_Weapon.Type.Thrown))   
+				continue;
+
+			// ... and it has an item identifier ...
+			vp_ItemIdentifier identifier = weapon.GetComponent<vp_ItemIdentifier>();
+			if (identifier == null)
+				continue;
+
+			// ... and the identifier is for a unitbank ...
+			vp_UnitBankType unitBankType = (identifier.GetItemType() as vp_UnitBankType);
+			if (unitBankType == null)
+				continue;
+
+			// --- then consider it a throwing weapon unitbank type ---
+
+			// store the unitbank type under its unit type
+			if(!m_ThrowingWeaponUnitBankTypes.ContainsKey(unitBankType.Unit))
+				m_ThrowingWeaponUnitBankTypes.Add(unitBankType.Unit, unitBankType);
+
+			// store the unit type as known throwing weapon ammo
+			if (!m_ThrowingWeaponUnitTypes.Contains(unitBankType.Unit))
+				m_ThrowingWeaponUnitTypes.Add(unitBankType.Unit);
+
+			// if the inventory has a unitbank instance for this weapon ...
+			vp_UnitBankInstance unitBankInstance = GetUnitBankInstanceOfWeapon(weapon);
+			if (unitBankInstance == null)
+				continue;
+
+			// ... then store it by its unitbank type
+			if (!m_ThrowingWeaponUnitBankInstances.ContainsKey(unitBankType))
+				m_ThrowingWeaponUnitBankInstances.Add(unitBankType, unitBankInstance);
+
+		}
+
+		m_HaveThrowingWeaponInfo = true;
+
+	}
+
+
+	/// <summary>
+	/// returns the first known vp_UnitBankInstance of a certain UnitBankType,
+	/// provided that the player rig has a vp_Weapon with the same UnitBankType
+	/// that has 'AnimationType:Thrown'.
+	/// </summary>
+	public virtual vp_UnitBankInstance GetThrowingWeaponUnitBankInstance(vp_UnitBankType unitBankType)
+	{
+		
+		if (WeaponHandler == null)
+			return null;
+
+		if (!m_HaveThrowingWeaponInfo)
+			StoreThrowingWeaponInfo();
+
+		vp_UnitBankInstance unitBankInstance = null;
+		m_ThrowingWeaponUnitBankInstances.TryGetValue(unitBankType, out unitBankInstance);
+
+		return unitBankInstance;
+
+	}
+
+
+	/// <summary>
+	/// returns the UnitBank type of the first known vp_Weapon that has the
+	/// passed UnitType and 'AnimationType:Thrown'.
+	/// </summary>
+	public virtual vp_UnitBankType GetThrowingWeaponUnitBankType(vp_UnitType unitType)
+	{
+		if (!m_HaveThrowingWeaponInfo)
+			StoreThrowingWeaponInfo();
+
+
+		vp_UnitBankType unitBankType = null;
+		m_ThrowingWeaponUnitBankTypes.TryGetValue(unitType, out unitBankType);
+		return unitBankType;
+
+	}
+
+
+	/// <summary>
+	/// returns true if the player rig has a vp_Weapon with the same UnitBankType
+	/// and 'AnimationType:Thrown'.
+	/// </summary>
+	public virtual bool IsThrowingUnitBank(vp_UnitBankType unitBankType)
+	{
+
+		return GetThrowingWeaponUnitBankInstance(unitBankType) != null;
+
+	}
+
+
+	/// <summary>
+	/// returns true if the player rig has a vp_Weapon with the same UnitType and
+	/// 'AnimationType:Thrown'.
+	/// </summary>
+	public virtual bool IsThrowingUnit(vp_UnitType unitType)
+	{
+
+		if (!m_HaveThrowingWeaponInfo)
+			StoreThrowingWeaponInfo();
+
+		return (m_ThrowingWeaponUnitTypes.Contains(unitType));
+
 	}
 
 
@@ -823,8 +945,8 @@ public class vp_PlayerInventory : vp_Inventory
 
 		m_PreviouslyOwnedItems.Clear();
 		m_CurrentWeaponInstance = null;
-
-		if (!m_Misc.ResetOnRespawn)
+		
+		if ((m_Misc != null) && !m_Misc.ResetOnRespawn)
 			return;
 
 		base.Reset();

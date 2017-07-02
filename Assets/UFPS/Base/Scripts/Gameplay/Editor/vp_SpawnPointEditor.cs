@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_SpawnPointEditor.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	editor for vp_SpawnPoints, with lots of special logic for mouse
 //					interaction and playing nicely with the regular unity tools
@@ -238,18 +238,32 @@ public class vp_SpawnPointEditor : Editor
 			// if radius is larger than one, this is an area spawnpoint
 			if (m_Component.Radius > 1.0f || !m_Modifying)
 			{
-				Handles.ScaleValueHandle(0,
+#if UNITY_5_6_OR_NEWER
+                Handles.ScaleValueHandle(0,
+                m_TransformPosition + (m_TransformForward * m_Component.Radius),    // draw circle cap at area boundary
+                Quaternion.Euler(90, 0, 0),
+                2.0f, Handles.CircleHandleCap, 0);
+#else
+                Handles.ScaleValueHandle(0,
 				m_TransformPosition + (m_TransformForward * m_Component.Radius),	// draw circle cap at area boundary
 				Quaternion.Euler(90, 0, 0),
 				2.0f, Handles.CircleCap, 0);
-			}
+#endif
+            }
 			else // radius is smaller than one: this is a non-area point
-			{
+            {
+#if UNITY_5_6_OR_NEWER
+                Handles.ScaleValueHandle(0,
+                m_TransformPosition + (m_TransformForward * m_DistanceToObject2D),  // draw circle cap at mouse position
+                Quaternion.Euler(90, 0, 0),
+                2.0f, Handles.CircleHandleCap, 0);
+#else
 				Handles.ScaleValueHandle(0,
 				m_TransformPosition + (m_TransformForward * m_DistanceToObject2D),	// draw circle cap at mouse position
 				Quaternion.Euler(90, 0, 0),
 				2.0f, Handles.CircleCap, 0);
-			}
+#endif
+            }
 
 			// this handles a case where tool handle positions will go wrong if the
 			// regular rotate tool is used in the 'Global' pivot rotation mode.
@@ -286,15 +300,43 @@ public class vp_SpawnPointEditor : Editor
 			// force world rotation at all times
 			m_Component.transform.rotation = Quaternion.identity;
 
-			if (m_Modifying && m_Mousedown)	// while modifying, show a single circle cap
-			{
+			if (m_Modifying && m_Mousedown) // while modifying, show a single circle cap
+            {
+#if UNITY_5_6_OR_NEWER
+                Handles.ScaleValueHandle(0,
+                m_HitPoint,
+                Quaternion.Euler(90, 0, 0),
+                2.0f, Handles.CircleHandleCap, 0);
+#else
 				Handles.ScaleValueHandle(0,
 				m_HitPoint,
 				Quaternion.Euler(90, 0, 0),
 				2.0f, Handles.CircleCap, 0);
-			}
-			else	// when not modifying, display four circle caps that all can be used to start scaling
-			{
+#endif
+            }
+			else    // when not modifying, display four circle caps that all can be used to start scaling
+            {
+#if UNITY_5_6_OR_NEWER
+                Handles.ScaleValueHandle(0,
+                m_TransformPosition + (m_TransformForward * m_Component.Radius),
+                Quaternion.Euler(90, 0, 0),
+                2.0f, Handles.CircleHandleCap, 0);
+
+                Handles.ScaleValueHandle(0,
+                m_TransformPosition + (m_TransformRight * m_Component.Radius),
+                Quaternion.Euler(90, 0, 0),
+                2.0f, Handles.CircleHandleCap, 0);
+
+                Handles.ScaleValueHandle(0,
+                m_TransformPosition + ((-m_TransformRight) * m_Component.Radius),
+                Quaternion.Euler(90, 0, 0),
+                2.0f, Handles.CircleHandleCap, 0);
+
+                Handles.ScaleValueHandle(0,
+                m_TransformPosition + ((-m_TransformForward) * m_Component.Radius),
+                Quaternion.Euler(90, 0, 0),
+                2.0f, Handles.CircleHandleCap, 0);
+#else
 				Handles.ScaleValueHandle(0,
 				m_TransformPosition + (m_TransformForward * m_Component.Radius),
 				Quaternion.Euler(90, 0, 0),
@@ -314,8 +356,8 @@ public class vp_SpawnPointEditor : Editor
 				m_TransformPosition + ((-m_TransformForward) * m_Component.Radius),
 				Quaternion.Euler(90, 0, 0),
 				2.0f, Handles.CircleCap, 0);
-
-			}
+#endif
+            }
 
 		}
 

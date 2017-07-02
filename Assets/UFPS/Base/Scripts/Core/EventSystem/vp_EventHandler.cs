@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_EventHandler.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	the event handler is a hub facilitating delegate based messaging
 //					between components inside a gameobject hierarchy. components
@@ -28,8 +28,9 @@ public abstract class vp_EventHandler: MonoBehaviour
 
 	protected bool m_Initialized = false;
 
-	// events declared in derived eventhandler, by type
-	protected Dictionary<string, vp_Event> m_HandlerEvents = new Dictionary<string, vp_Event>();
+	// events declared in derived eventhandler, by prefixed callback ('OnStart_' 'OnAttempt' etc.)
+	protected Dictionary<string, vp_Event> m_EventsByCallback = new Dictionary<string, vp_Event>();
+	protected List<vp_Event> m_Events = new List<vp_Event>();
 
 	// objects that tried to register with the handler before it woke
 	// up and will need revisiting
@@ -95,10 +96,17 @@ public abstract class vp_EventHandler: MonoBehaviour
 
 			i.SetValue(this, e);
 
+			// store all events in a list
+			if (!m_Events.Contains((vp_Event)e))
+				m_Events.Add((vp_Event)e);
+
+			// store each event in a dictionary, once for every available prefix,
+			// e.g. 'OnStart_Attack', 'OnStop_Attack' etc.
 			foreach (string prefix in ((vp_Event)e).Prefixes.Keys)
 			{
-				m_HandlerEvents.Add(prefix + i.Name, (vp_Event)e);
+				m_EventsByCallback.Add(prefix + i.Name, (vp_Event)e);
 			}
+
 		}
 
 	}
@@ -170,7 +178,7 @@ public abstract class vp_EventHandler: MonoBehaviour
 		{
 
 			// method must have a corresponding event in the event handler
-			if (!(m_HandlerEvents.TryGetValue(m.Name, out e)))
+			if (!(m_EventsByCallback.TryGetValue(m.Name, out e)))
 			{
 				//Debug.LogWarning("Warning: (" + m.DeclaringType + ") Event handler can't register method '" + m.Name + "' because '" + this.GetType() + "' has not (successfully) registered any event named '" + m.Name.Substring(m.Name.Substring(0, m.Name.IndexOf('_', 4) + 1).Length));
 				continue;
@@ -215,12 +223,11 @@ public abstract class vp_EventHandler: MonoBehaviour
 		//    return;
 		//}
 
-		Type type;
 		FieldInfo field;
 		object obj;
 		Delegate del;
 
-		foreach (vp_Event e in m_HandlerEvents.Values)
+		foreach (vp_Event e in m_Events)
 		{
 
 			if (e == null)
@@ -229,8 +236,7 @@ public abstract class vp_EventHandler: MonoBehaviour
 			foreach (string f in e.InvokerFieldNames)
 			{
 				
-				type = e.GetType();
-				field = type.GetField(f);
+				field = e.Type.GetField(f);
 				if (field == null)
 					continue;
 

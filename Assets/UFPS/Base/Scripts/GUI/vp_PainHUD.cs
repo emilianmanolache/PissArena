@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_PainHUD.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a pain hud featuring directional arrows to help locating the
 //					sources of incoming damage, a pain effect with color + motion
@@ -65,10 +65,31 @@ public class vp_PainHUD : MonoBehaviour
 	protected Color m_PainColor = new Color(0.8f, 0, 0, 0);
 	protected Color m_ArrowColor = new Color(0.8f, 0, 0, 0);		
 	protected Color m_FlashInvisibleColor = new Color(1, 0, 0, 0);	// the pain flash will fade out to this color
-	protected Color m_SplatColor = Color.white;	// lightness of the current blood spatter upon death
+	protected Color m_SplatColor = new Color(1, 1, 1, 0);	// lightness of the current blood spatter upon death
 	protected Rect m_SplatRect;					// gui rectangle for blood spatter
 
 	private vp_FPPlayerEventHandler m_Player = null;
+
+	protected bool m_RenderGUI = true;
+	public bool UseOnGUI
+	{
+		get
+		{
+			return m_RenderGUI;
+		}
+		set
+		{
+			m_RenderGUI = value;
+		}
+	}
+
+	public Color PainColor
+	{
+		get
+		{
+			return m_PainColor;
+		}
+	}
 
 	// BLUR: uncomment to enable on Unity Pro
 	//protected MotionBlur m_PainBlur = null;
@@ -77,7 +98,7 @@ public class vp_PainHUD : MonoBehaviour
 	/// <summary>
 	///
 	/// </summary>
-	void Awake()
+	protected virtual void Awake()
 	{
 
 		m_Player = transform.GetComponent<vp_FPPlayerEventHandler>();
@@ -136,7 +157,7 @@ public class vp_PainHUD : MonoBehaviour
 	/// <summary>
 	/// draws a fullscreen pain flash + blur when damaged
 	/// </summary>
-	void UpdatePainFlash()
+	protected virtual void UpdatePainFlash()
 	{
 
 		if (m_PainColor.a < 0.01f)
@@ -151,13 +172,16 @@ public class vp_PainHUD : MonoBehaviour
 		}
 
 		m_PainColor = Color.Lerp(m_PainColor, m_FlashInvisibleColor, Time.deltaTime * 0.4f);
-		GUI.color = m_PainColor;
+		if (UseOnGUI)
+		{
+			GUI.color = m_PainColor;
 
-		if (PainTexture != null)
-			GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), PainTexture);
+			if (PainTexture != null)
+				GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), PainTexture);
 
-		GUI.color = Color.white;
+			GUI.color = Color.white;
 
+		}
 		// BLUR: uncomment to enable on Unity Pro
 		//if (m_PainBlur != null)
 		//	m_PainBlur.blurAmount = m_PainColor.a;
@@ -168,7 +192,7 @@ public class vp_PainHUD : MonoBehaviour
 	/// <summary>
 	/// draws a direction arrow for every current inflictor of damage
 	/// </summary>
-	void UpdateInflictorArrows()
+	protected virtual void UpdateInflictorArrows()
 	{
 
 		if (ArrowTexture == null)
@@ -211,12 +235,16 @@ public class vp_PainHUD : MonoBehaviour
 			push = Mathf.Lerp(0, 1, push);
 			scale += ((Screen.width / 100) * push);
 
-			// rotate and draw arrow
-			Matrix4x4 matrixBackup = GUI.matrix;
-			GUIUtility.RotateAroundPivot(rot, pos);
-			GUI.color = m_ArrowColor;
-			GUI.DrawTexture(new Rect(pos.x, pos.y, scale, scale), ArrowTexture);
-			GUI.matrix = matrixBackup;
+			if (UseOnGUI)
+			{
+
+				// rotate and draw arrow
+				Matrix4x4 matrixBackup = GUI.matrix;
+				GUIUtility.RotateAroundPivot(rot, pos);
+				GUI.color = m_ArrowColor;
+				GUI.DrawTexture(new Rect(pos.x, pos.y, scale, scale), ArrowTexture);
+				GUI.matrix = matrixBackup;
+			}
 
 		}
 
@@ -228,7 +256,7 @@ public class vp_PainHUD : MonoBehaviour
 	/// scaling and position of the image is unique for each death
 	/// and gets set in OnStart_Dead
 	/// </summary>
-	void UpdateDeathTexture()
+	protected virtual void UpdateDeathTexture()
 	{
 
 		if (DeathTexture == null)
@@ -240,8 +268,12 @@ public class vp_PainHUD : MonoBehaviour
 		if (m_SplatColor.a == 0.0f)
 			return;
 
-		GUI.color = m_SplatColor;
-		GUI.DrawTexture(m_SplatRect, DeathTexture);
+		if (UseOnGUI)
+		{
+
+			GUI.color = m_SplatColor;
+			GUI.DrawTexture(m_SplatRect, DeathTexture);
+		}
 
 	}
 
@@ -256,6 +288,7 @@ public class vp_PainHUD : MonoBehaviour
 		if (damageInfo == null || damageInfo.Damage == 0.0f)
 		{
 			m_PainColor.a = 0.0f;
+			m_SplatColor.a = 0.0f; 
 			return;
 		}
 
@@ -293,7 +326,7 @@ public class vp_PainHUD : MonoBehaviour
 	/// effect on the screen while the player is dead. gets refreshed once
 	/// every time the player dies
 	/// </summary>
-	void OnStart_Dead()
+	protected virtual void OnStart_Dead()
 	{
 
 		// don't show blood spatter for falling damage
@@ -340,7 +373,7 @@ public class vp_PainHUD : MonoBehaviour
 	/// <summary>
 	/// clears pain fx when player comes back to life
 	/// </summary>
-	void OnStop_Dead()
+	protected virtual void OnStop_Dead()
 	{
 
 		m_PainColor.a = 0.0f;

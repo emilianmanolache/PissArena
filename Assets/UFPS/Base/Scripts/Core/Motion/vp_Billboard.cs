@@ -1,23 +1,25 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Billboard.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
-//	description:	this script will make its gameobject always face the camera
+//	description:	this script will make its gameobject always face the camera.
+//
+//					NOTE: in VR the billboard will have a slightly off angle in
+//					the editor, but in a standalone build it will look correct
 //
 ///////////////////////////////////////////////////////////////////////////////// 
 
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
+
 
 public class vp_Billboard : MonoBehaviour
 {
 
-	public Transform m_CameraTransform = null;
 	Transform m_Transform = null;
+
 
 	/// <summary>
 	/// 
@@ -26,10 +28,9 @@ public class vp_Billboard : MonoBehaviour
 	{
 
 		m_Transform = transform;
-		if (m_CameraTransform == null)
-			m_CameraTransform = Camera.main.transform;
 
 	}
+
 
 	/// <summary>
 	/// 
@@ -37,11 +38,24 @@ public class vp_Billboard : MonoBehaviour
 	protected virtual void Update()
 	{
 
-		if (m_CameraTransform != null)
-			m_Transform.localEulerAngles = m_CameraTransform.eulerAngles;
+		// in VR, we must rotate the billboard towards the eye camera that is
+		// currently rendering, or the angle will become askew. however, this
+		// only works in a standalone build since 'Camera.current' will return
+		// an arbitrary scene view camera in the editor
+		if (vp_Gameplay.IsVR && !Application.isEditor)
+		{
+			if (Camera.current != null)
+				m_Transform.LookAt(Camera.current.transform);
+		}
+		else
+		{
+			// we are either in the editor or not in VR: look at the main camera
+			if (Camera.main != null)
+				m_Transform.LookAt(Camera.main.transform);
+		}
 
-		m_Transform.localEulerAngles = (Vector2)m_Transform.localEulerAngles;
 
 	}
+
 
 }

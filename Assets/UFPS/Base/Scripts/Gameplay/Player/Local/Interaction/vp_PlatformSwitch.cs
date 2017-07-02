@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_PlatformSwitch.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	This class allows the player to interact with vp_MovingPlatform.
 //
@@ -60,7 +60,7 @@ public class vp_PlatformSwitch : vp_Interactable
 		// only try to actually operate the platform if we're the master.
 		// if we're just a client the master should detect the trigger enter
 		// too, and should activate the platform remotely
-		if (vp_Gameplay.isMaster)
+		if (vp_Gameplay.IsMaster)
 			Platform.SendMessage("GoTo", Platform.TargetedWaypoint == 0 ? 1 : 0, SendMessageOptions.DontRequireReceiver);
 		else if (InteractType == vp_InteractType.Normal)
 			this.SendMessage("ClientTryInteract");

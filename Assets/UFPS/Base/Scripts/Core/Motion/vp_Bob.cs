@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Bob.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this script will move its gameobject in a wavy (sinus / bob)
 //					motion. NOTE: this script currently can not be used on items
@@ -26,10 +26,15 @@ public class vp_Bob : MonoBehaviour
 	public float GroundOffset = 0.0f;							// TIP: increase this to avoid ground intersection
 	public bool RandomizeBobOffset = false;
 	public bool LocalMotion = false;
+	public bool SmoothGroundOffset = false;						// if true, the ground offset will be zero OnEnable, then applied slowly
 
 	protected Transform m_Transform;
-	protected Vector3 m_InitialPosition;
 	protected Vector3 m_Offset;
+	protected float m_CurrentGroundOffset = 0.0f;
+	private const float GROUND_OFFSET_LERP_SPEED = 2.0f;
+
+	[HideInInspector]
+	public Vector3 InitialPosition = Vector3.zero;
 
 
 	/// <summary>
@@ -37,8 +42,10 @@ public class vp_Bob : MonoBehaviour
 	/// </summary>
 	protected virtual void Awake()
 	{
+
 		m_Transform = transform;
-		m_InitialPosition = m_Transform.position;
+		InitialPosition = m_Transform.position;
+
 	}
 
 
@@ -48,7 +55,7 @@ public class vp_Bob : MonoBehaviour
 	protected virtual void OnEnable()
 	{
 
-		m_Transform.position = m_InitialPosition;
+		m_CurrentGroundOffset = 0.0f;
 		if (RandomizeBobOffset)
 			BobOffset = Random.value;
 
@@ -61,6 +68,11 @@ public class vp_Bob : MonoBehaviour
 	protected virtual void Update()
 	{
 
+		if (SmoothGroundOffset)
+			m_CurrentGroundOffset = Mathf.Lerp(m_CurrentGroundOffset, GroundOffset, Time.deltaTime * GROUND_OFFSET_LERP_SPEED);
+		else
+			m_CurrentGroundOffset = GroundOffset;
+
 		if ((BobRate.x != 0.0f) && (BobAmp.x != 0.0f))
 			m_Offset.x = vp_MathUtility.Sinus(BobRate.x, BobAmp.x, BobOffset);
 
@@ -71,15 +83,14 @@ public class vp_Bob : MonoBehaviour
 			m_Offset.z = vp_MathUtility.Sinus(BobRate.z, BobAmp.z, BobOffset);
 
 		if (!LocalMotion)
-			m_Transform.position = (m_InitialPosition + m_Offset) + (Vector3.up * GroundOffset);
+			m_Transform.position = (InitialPosition + m_Offset) + (Vector3.up * m_CurrentGroundOffset);
 		else
 		{
-			m_Transform.position = m_InitialPosition + (Vector3.up * GroundOffset);
+			m_Transform.position = InitialPosition + (Vector3.up * m_CurrentGroundOffset);
 			m_Transform.localPosition += m_Transform.TransformDirection(m_Offset);
 		}
 
 	}
-
 
 
 }

@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_UFPSMenu.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	unity editor main menu items for UFPS
 //
@@ -26,7 +26,7 @@ public class UFPSMenu
 	[MenuItem("UFPS/UFPS Manual", false, 22)]
 	public static void Manual()
 	{
-		Application.OpenURL("http://www.visionpunk.com/hub/assets/ufps/manual");
+		Application.OpenURL("http://www.opsive.com/assets/UFPS/hub/assets/ufps/manual");
 	}
 
 
@@ -44,6 +44,31 @@ public class UFPSMenu
 		vp_InputWindow.Init();
 	}
 
+	[MenuItem("UFPS/Wizards/Surfaces/Create Surface Type", false, 101)]
+	public static void CreateVpSurfaceType()
+	{
+		vp_SurfaceType asset = (vp_SurfaceType)vp_EditorUtility.CreateAsset("UFPS/Base/Content/Surfaces/SurfaceTypes", typeof(vp_SurfaceType));
+		if (asset != null)
+		{
+			asset.Init();
+		}
+
+	}
+
+	[MenuItem("UFPS/Wizards/Surfaces/Create Impact Event", false, 101)]
+	public static void CreateVpImpactEvent()
+	{
+		vp_EditorUtility.CreateAsset("UFPS/Base/Content/Surfaces/ImpactEvents", typeof(vp_ImpactEvent));
+	}
+	
+	[MenuItem("UFPS/Wizards/Surfaces/Create Surface Effect", false, 101)]
+	public static void CreateVpSurfaceEffect()
+	{
+		vp_SurfaceEffect asset = (vp_SurfaceEffect)vp_EditorUtility.CreateAsset("UFPS/Base/Content/Surfaces/SurfaceFX", typeof(vp_SurfaceEffect));
+		if (asset != null)
+			asset.Init();
+	}
+	
 	[MenuItem("UFPS/Wizards/Create Item Type/Item", false, 101)]
 	public static void CreateItemTypeVpItemType()
 	{
@@ -79,7 +104,7 @@ public class UFPSMenu
 
 	}
 
-	[MenuItem("UFPS/Wizards/Generate Remote Player", false, 101)]
+	[MenuItem("UFPS/Wizards/Generate Remote Player", false, 106)]
 	public static void GenerateRemotePlayer()
 	{
 		vp_RemotePlayerWizard.Generate();
@@ -125,49 +150,43 @@ public class UFPSMenu
 	[MenuItem("UFPS/Help/F.A.Q.", false, 201)]
 	public static void FAQ()
 	{
-		Application.OpenURL("http://www.visionpunk.com/hub/assets/ufps/faq");
+		Application.OpenURL("http://www.opsive.com/assets/UFPS/hub/assets/ufps/faq");
 	}
 
 	[MenuItem("UFPS/Help/Support Info", false, 202)]
 	public static void SupportInfo()
 	{
-		Application.OpenURL("http://www.visionpunk.com/hub/assets/ufps/supportinfo");
+		Application.OpenURL("http://www.opsive.com/assets/UFPS/hub/assets/ufps/supportinfo");
 	}
 	
 	[MenuItem("UFPS/Help/Release Notes", false, 203)]
 	public static void ReleaseNotes()
 	{
-		Application.OpenURL("http://www.visionpunk.com/hub/assets/ufps/releasenotes");
+		Application.OpenURL("http://www.opsive.com/assets/UFPS/hub/assets/ufps/releasenotes");
 	}
 
 	[MenuItem("UFPS/Help/Update Instructions", false, 204)]
 	public static void UpdateInstructions()
 	{
-		Application.OpenURL("http://www.visionpunk.com/hub/assets/ufps/upgrading");
+		Application.OpenURL("http://www.opsive.com/assets/UFPS/hub/assets/ufps/upgrading");
 	}
 
 	[MenuItem("UFPS/Community/Follow us on Twitter", false, 205)]
 	public static void Twitter()
 	{
-		Application.OpenURL("http://www.visionpunk.com/hub/twitter");
+		Application.OpenURL("http://www.opsive.com/assets/UFPS/hub/twitter");
 	}
 
 	[MenuItem("UFPS/Community/YouTube Channel", false, 206)]
 	public static void YouTube()
 	{
-		Application.OpenURL("http://www.visionpunk.com/hub/youtube");
+		Application.OpenURL("http://www.opsive.com/assets/UFPS/hub/youtube");
 	}
 
 	[MenuItem("UFPS/Community/Official UFPS Forum", false, 207)]
 	public static void OfficialUFPSForum()
 	{
-		Application.OpenURL("http://www.visionpunk.com/hub/assets/ufps/forum");
-	}
-
-	[MenuItem("UFPS/Community/Unity Community Forum Thread", false, 208)]
-	public static void UnityCommunityForumThread()
-	{
-		Application.OpenURL("http://www.visionpunk.com/hub/assets/ufps/unityforum");
+		Application.OpenURL("http://www.opsive.com/assets/UFPS/hub/assets/ufps/forum");
 	}
 
 	/////////////////////////////////////////////////////////////////

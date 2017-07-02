@@ -1,11 +1,11 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPSDemoManager.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
-//	description:	utility class for Ultimate FPS demo scripts
+//	description:	utility class for UFPS demo scripts
 //
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -71,11 +71,13 @@ public class vp_FPSDemoManager : vp_DemoManager
 
 		Player = player;
 
+		// cache some common components
 		Controller = Player.GetComponent<vp_FPController>();
 		Camera = Player.GetComponentInChildren<vp_FPCamera>();
 		WeaponHandler = Player.GetComponentInChildren<vp_WeaponHandler>();
 		PlayerEventHandler = (vp_FPPlayerEventHandler)Player.GetComponentInChildren(typeof(vp_FPPlayerEventHandler));
 		Input = Player.GetComponent<vp_FPInput>();
+
 		Earthquake = (vp_FPEarthquake)Component.FindObjectOfType(typeof(vp_FPEarthquake));
 
 		// on small screen resolutions the editor preview screenshot

@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_CharacterController.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this script complements a unity charactercontroller with UFPS
 //					state and event system functionality, along with resize logic
@@ -102,7 +102,8 @@ public class vp_CharacterController : vp_Controller
 
 
 	/// <summary>
-	/// 
+	/// moves the controller by 'direction'. the controller will be affected
+	/// by gravity, constrained by collisions and slide along colliders
 	/// </summary>
 	protected virtual void OnMessage_Move(Vector3 direction)
 	{

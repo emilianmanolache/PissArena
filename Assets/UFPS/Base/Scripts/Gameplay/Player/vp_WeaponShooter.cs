@@ -1,11 +1,11 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
-//	vp_FPWeaponShooter.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	vp_WeaponShooter.cs
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
-//	description:	
+//	description:	a weapon shooter that can be used on AIs and remote players
 //
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -147,7 +147,7 @@ public class vp_WeaponShooter : vp_Shooter
 
 		// in UFPS multiplayer add-on, projectiles are spawned by RPC, and
 		// local spawn delay must not be applied, so temporarily zero it
-		if (vp_Gameplay.isMultiplayer && !Player.IsLocal.Get())
+		if (vp_Gameplay.IsMultiplayer && !Player.IsLocal.Get())
 			ProjectileSpawnDelay = 0.0f;
 
 		m_LastFireTime = Time.time;

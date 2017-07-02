@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Shooter.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this component can be added to any gameobject, giving it the capability
 //					of firing projectiles. it handles firing rate, projectile spawning,
@@ -43,6 +43,8 @@ public class vp_Shooter : vp_Component
 	public int ProjectileCount = 1;						// amount of projectiles to fire at once
 	public float ProjectileSpread = 0.0f;				// accuracy deviation in degrees (0 = spot on)
 	public bool ProjectileSourceIsRoot = true;			// whether to report this projectile as being sent from this transform or from its root
+	public string FireMessage = "";						// OPTIONAL: if this is set, a regular Unity message will be sent to the root gameobject every time the shooter fires
+	protected bool HaveFireMessage = false;				// for avoiding runtime string check
 	protected float m_NextAllowedFireTime = 0.0f;		// the next time firing will be allowed after having recently fired a shot
 
 	// muzzle flash
@@ -137,6 +139,14 @@ public class vp_Shooter : vp_Component
 		ProjectileSpawnDelay = Mathf.Min(ProjectileSpawnDelay, (ProjectileFiringRate - 0.1f));
 		if(ShellPrefab != null)
 			m_ActualShellScale = ShellPrefab.transform.localScale * ShellScale;
+
+		HaveFireMessage = !string.IsNullOrEmpty(FireMessage);
+
+		// SNIPPET: if you see problems with pooled bullets in multiplayer, you
+		// can uncomment this to make the vp_PoolManager instance ignore this
+		// shooter's bullet prefabs in multiplayer
+		//if (vp_Gameplay.IsMultiplayer && (vp_PoolManager.Instance != null))
+		//	vp_PoolManager.Instance.AddIgnoredPrefab(ProjectilePrefab);
 
 	}
 
@@ -253,6 +263,13 @@ public class vp_Shooter : vp_Component
 		else
 			vp_Timer.In(MuzzleFlashDelay, ShowMuzzleFlash);
 
+		// send fire message
+		// NOTE: this doesn't do anything by default and is just provided as a
+		// means of triggering your own method in a script on the root gameobject
+		// when the shooter fires
+		if(HaveFireMessage)
+			gameObject.transform.root.gameObject.SendMessage(FireMessage, SendMessageOptions.DontRequireReceiver);
+
 	}
 
 
@@ -273,7 +290,6 @@ public class vp_Shooter : vp_Component
 		// for 'vp_Component:DeactivateWhenSilent'
 	
 	}
-
 
 
 	/// <summary>
@@ -305,6 +321,7 @@ public class vp_Shooter : vp_Component
 		{
 		
 			GameObject p = null;
+
 			p = (GameObject)vp_Utility.Instantiate(ProjectilePrefab, m_CurrentFirePosition, m_CurrentFireRotation);
 
 			// TIP: uncomment this to debug-draw bullet paths and points of impact
@@ -327,7 +344,8 @@ public class vp_Shooter : vp_Component
 	public void SetSpread(int seed, Transform target)
 	{
 
-		Random.seed = seed;
+		vp_MathUtility.SetSeed(seed);
+
 		//vp_MasterClient.DebugMsg = "Firing shot from '" + photonView.viewID + "' with seed: " + Random.seed + ".";
 		target.Rotate(0, 0, Random.Range(0, 360));									// first, rotate up to 360 degrees around z for circular spread
 		target.Rotate(0, Random.Range(-ProjectileSpread, ProjectileSpread), 0);		// then rotate around y with user defined deviation
@@ -348,7 +366,7 @@ public class vp_Shooter : vp_Component
 		if (m_MuzzleFlashSpawnPoint != null && ProjectileSpawnPoint != null)
 		{
 			MuzzleFlash.transform.position = m_MuzzleFlashSpawnPoint.transform.position;
-			MuzzleFlash.transform.rotation = ProjectileSpawnPoint.transform.rotation;
+			MuzzleFlash.transform.rotation = m_MuzzleFlashSpawnPoint.transform.rotation;
 		}
 
 		MuzzleFlash.SendMessage("Shoot", SendMessageOptions.DontRequireReceiver);
@@ -361,6 +379,9 @@ public class vp_Shooter : vp_Component
 	/// </summary>
 	protected virtual void EjectShell()
 	{
+
+		if (this == null)
+			return;
 
 		if (ShellPrefab == null)
 			return;
@@ -440,6 +461,9 @@ public class vp_Shooter : vp_Component
 	/// </summary>
 	public override void Refresh()
 	{
+
+		if (!Application.isPlaying)
+			return;
 
 		// update muzzle flash position, scale and fadespeed from preset
 		if (MuzzleFlash != null)

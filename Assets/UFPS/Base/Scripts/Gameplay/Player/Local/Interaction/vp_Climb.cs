@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Climb.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this script allows the player to climb objects. it attempts to keep
 //					the player at a certain distance from the object which is useful for
@@ -19,6 +19,7 @@ using System.Collections.Generic;
 public class vp_Climb : vp_Interactable
 {
 	
+
 	[System.Serializable]
 	public class vp_ClimbingSounds{
 		public AudioSource AudioSource = null;
@@ -60,7 +61,27 @@ public class vp_Climb : vp_Interactable
 		}
 	}
 
+	protected Collider m_Collider = null;
+	protected Collider Collider
+	{
+		get
+		{
+			if (m_Collider == null)
+				m_Collider = Transform.GetComponent<Collider>();
+			return m_Collider;
+		}
+	}
 
+	public Transform Transform
+	{
+		get
+		{
+			if (m_Transform == null)
+				m_Transform = transform;
+			return m_Transform;
+		}
+	}
+	
 	/// <summary>
 	/// 
 	/// </summary>
@@ -153,8 +174,8 @@ public class vp_Climb : vp_Interactable
 		
 		PlaySound(Sounds.MountSounds);
 
-		if (m_Controller.Transform.GetComponent<Collider>().enabled && m_Transform.GetComponent<Collider>().enabled)
-			Physics.IgnoreCollision(m_Controller.Transform.GetComponent<Collider>(), m_Transform.GetComponent<Collider>(), true); // ignore collisions with this object
+		if (m_Controller.Transform.GetComponent<Collider>().enabled && Collider.enabled)
+			Physics.IgnoreCollision(m_Controller.Transform.GetComponent<Collider>(), Collider, true); // ignore collisions with this object
 		
 		// start the initial mounting of the climbable object
 		StartCoroutine("LineUp");
@@ -204,10 +225,10 @@ public class vp_Climb : vp_Interactable
 		Vector3 startPosition = m_Player.Position.Get(); // cache the start position
 		Vector3 endPosition = GetNewPosition(); // cache the end position
 		Quaternion startingRotation = m_Camera.transform.rotation; // cache start rotation
-		Quaternion endRotation = Quaternion.LookRotation(-m_Transform.forward); // cache end rotation
+		Quaternion endRotation = Quaternion.LookRotation(-Transform.forward); // cache end rotation
 		
 		// set a bool to test if we are starting our climb from the top or not
-		bool fromTop = m_Controller.Transform.position.y > m_Transform.GetComponent<Collider>().bounds.center.y;
+		bool fromTop = m_Controller.Transform.position.y > Collider.bounds.center.y;
 
 		// modify the ending position based on where we start our climb
 		if(fromTop)
@@ -216,14 +237,14 @@ public class vp_Climb : vp_Interactable
 			endPosition += m_Controller.Transform.up * (m_Controller.CharacterController.height / 2); // modifies the ending position to be up from the bottom a little
 
 		// modify the ending rotation based on where we start our climb
-		if (fromTop && m_Transform.InverseTransformDirection(-FPPlayer.CameraLookDirection.Get()).z > 0.0f)
+		if (fromTop && Transform.InverseTransformDirection(-FPPlayer.CameraLookDirection.Get()).z > 0.0f)
 			endRotation = Quaternion.Euler(new Vector3(45.0f, endRotation.eulerAngles.y, endRotation.eulerAngles.z));
 		else
 			endRotation = Quaternion.Euler(new Vector3(-45.0f, endRotation.eulerAngles.y, endRotation.eulerAngles.z));
 
 		// align our end position with the center of this climbable
-		endPosition = new Vector3(m_Transform.GetComponent<Collider>().bounds.center.x, endPosition.y, m_Transform.GetComponent<Collider>().bounds.center.z);
-		endPosition += m_Transform.forward;
+		endPosition = new Vector3(Collider.bounds.center.x, endPosition.y, Collider.bounds.center.z);
+		endPosition += Transform.forward;
 		
 		float t = 0;
 		
@@ -269,14 +290,14 @@ public class vp_Climb : vp_Interactable
 		
 		m_CanClimbAgain = Time.time + ClimbAgainTimeout;
 
-		if (m_Controller.Transform.GetComponent<Collider>().enabled && m_Transform.GetComponent<Collider>().enabled)
-			Physics.IgnoreCollision(m_Controller.Transform.GetComponent<Collider>(), m_Transform.GetComponent<Collider>(), false); // allow player to collide with this object again
+		if (m_Controller.Transform.GetComponent<Collider>().enabled && Collider.enabled)
+			Physics.IgnoreCollision(m_Controller.Transform.GetComponent<Collider>(), Collider, false); // allow player to collide with this object again
 		
 		PlaySound(Sounds.DismountSounds);
 
 		// add a force repelling player from climbable upon dismount.
 		Vector3 force = m_Controller.Transform.forward * DismountForce;
-		if (m_Transform.GetComponent<Collider>().bounds.center.y < m_Player.Position.Get().y)
+		if (Collider.bounds.center.y < m_Player.Position.Get().y)
 		{
 			force *= 2.0f;
 			force.y = DismountForce * 0.5f;	// dismounting at top: add slight up-force (push forward & up)
@@ -421,8 +442,8 @@ public class vp_Climb : vp_Interactable
 		}
 
 		// if we reach the top or bottom of the current climbable, stop climbing
-		if((testDirection > 0 && newPosition.y > GetTopOfCollider(m_Transform) - m_Controller.CharacterController.height * 0.25f) ||
-			(testDirection < 0 && m_Controller.Grounded && m_Controller.GroundTransform.GetInstanceID() != m_Transform.GetInstanceID()))
+		if((testDirection > 0 && newPosition.y > GetTopOfCollider(Transform) - m_Controller.CharacterController.height * 0.25f) ||
+			(testDirection < 0 && m_Controller.Grounded && m_Controller.GroundTransform.GetInstanceID() != Transform.GetInstanceID()))
 		{
 			m_Player.Climb.TryStop();
 			return;
@@ -456,21 +477,21 @@ public class vp_Climb : vp_Interactable
 	/// </summary>
 	protected virtual Vector3 GetNewPosition()
 	{
-			
+
 		Vector3 newPosition = m_Controller.Transform.position;
-		
+
 		RaycastHit hit;
 		Ray ray = new Ray(m_Controller.Transform.position, m_CachedDirection);
 		Physics.Raycast(ray, out hit, DistanceToClimbable * 4);
-		
-		if(hit.collider != null)
+
+		if (hit.collider != null)
 			// check if we are within the threshold of the distance to the climbable and we hit the m_Transform
-			if(hit.transform.GetInstanceID() == m_Transform.GetInstanceID() && (hit.distance > DistanceToClimbable || hit.distance < DistanceToClimbable))
+			if (hit.transform.GetInstanceID() == m_Transform.GetInstanceID() && (hit.distance > DistanceToClimbable || hit.distance < DistanceToClimbable))
 				// reset the position to be within our distanceToClimbable threshold
-	  			newPosition = (newPosition - hit.point).normalized * DistanceToClimbable + hit.point;
-		
+				newPosition = (newPosition - hit.point).normalized * DistanceToClimbable + hit.point;
+
 		return newPosition;
-		
+
 	}
 	
 	

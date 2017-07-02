@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_WeaponEditor.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	custom inspector for the vp_FPSWeapon class
 //
@@ -261,6 +261,7 @@ public class vp_WeaponEditor : Editor
 		{
 
 			m_Component.Weapon3rdPersonModel = (GameObject)EditorGUILayout.ObjectField("3rd Person (GameObject)", m_Component.Weapon3rdPersonModel, typeof(GameObject), true);
+			m_Component.Weapon3rdPersonInvisibleMaterial = (Material)EditorGUILayout.ObjectField("Invisible Material", m_Component.Weapon3rdPersonInvisibleMaterial, typeof(Material), false);
 
 			vp_EditorGUIUtility.Separator();
 

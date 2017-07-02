@@ -1,14 +1,19 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Message.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	standard event type. takes 0-1 generic arguments and optionally
 //					a generic return value
 //
 /////////////////////////////////////////////////////////////////////////////////
+
+#if (UNITY_IOS || UNITY_WII || UNITY_PS3 || UNITY_PS4 || UNITY_XBOXONE)
+// (see the 'AOT platform' comment in vp_Event.cs for info on this)
+#define AOT
+#endif
 
 using System;
 using System.Reflection;
@@ -27,8 +32,9 @@ public class vp_Message : vp_Event			// non-generic version for 0 arguments
 	public delegate void Sender();
 	public Sender Send;
 
+#if (!AOT)
 	protected static void Empty() { }
-
+#endif
 
 	/// <summary>
 	///
@@ -46,16 +52,17 @@ public class vp_Message : vp_Event			// non-generic version for 0 arguments
 	protected override void InitFields()
 	{
 
-		m_Fields = new FieldInfo[]{this.GetType().GetField("Send")};
+		m_Fields = new FieldInfo[]{Type.GetField("Send")};
 
 		StoreInvokerFieldNames();
-
-		m_DefaultMethods = new MethodInfo[] { this.GetType().GetMethod("Empty") };
-
+		
 		m_DelegateTypes = new Type[] { typeof(vp_Message.Sender) };
 		Prefixes = new Dictionary<string, int>() { { "OnMessage_", 0 } };
 
+#if (!AOT)
+		m_DefaultMethods = new MethodInfo[] { Type.GetMethod("Empty") };
 		Send = Empty;
+#endif
 
 	}
 
@@ -93,8 +100,7 @@ public class vp_Message : vp_Event			// non-generic version for 0 arguments
 public class vp_Message<V> : vp_Message			// generic version with 1 argument
 {
 
-#if (!UNITY_IPHONE)
-	// NOTE: see the 'UNITY_IPHONE' comment in vp_Event.cs for info on this
+#if (!AOT)
 	protected static void Empty<T>(T value) { }
 #endif
 
@@ -115,21 +121,22 @@ public class vp_Message<V> : vp_Message			// generic version with 1 argument
 	protected override void InitFields()
 	{
 
-		m_Fields = new FieldInfo[] { this.GetType().GetField("Send") };
+		m_Fields = new FieldInfo[] { Type.GetField("Send") };
 
 		StoreInvokerFieldNames();
-
-		m_DefaultMethods = new MethodInfo[] { GetStaticGenericMethod(this.GetType(), "Empty", m_ArgumentType, typeof(void)) };
+		
+#if (!AOT)
+		m_DefaultMethods = new MethodInfo[] { GetStaticGenericMethod(Type, "Empty", m_ArgumentType, typeof(void)) };
+#endif
 
 		m_DelegateTypes = new Type[] { typeof(vp_Message<>.Sender<>) };
 		Prefixes = new Dictionary<string, int>() { { "OnMessage_", 0 } };
 
-#if (!UNITY_IPHONE)
-		// NOTE: see the 'UNITY_IPHONE' comment in vp_Event.cs for info on this
+#if (!AOT)
 		Send = Empty;
 #endif
 
-		if (m_DefaultMethods[0] != null)
+		if (m_DefaultMethods != null && m_DefaultMethods[0] != null)
 			SetFieldToLocalMethod(m_Fields[0], m_DefaultMethods[0], MakeGenericType(m_DelegateTypes[0]));
 
 	}
@@ -176,8 +183,7 @@ public class vp_Message<V> : vp_Message			// generic version with 1 argument
 public class vp_Message<V, VResult> : vp_Message			// generic version with 1 argument and a return value
 {
 
-#if (!UNITY_IPHONE)
-	// NOTE: see the 'UNITY_IPHONE' comment in vp_Event.cs for info on this
+#if (!AOT)
 	protected static TResult Empty<T, TResult>(T value) { return default(TResult); }
 #endif
 
@@ -198,16 +204,18 @@ public class vp_Message<V, VResult> : vp_Message			// generic version with 1 arg
 	protected override void InitFields()
 	{
 
-		m_Fields = new FieldInfo[] { this.GetType().GetField("Send") };
+		m_Fields = new FieldInfo[] { Type.GetField("Send") };
 
 		StoreInvokerFieldNames();
 
-		m_DefaultMethods = new MethodInfo[] { GetStaticGenericMethod(this.GetType(), "Empty", m_ArgumentType, m_ReturnType) };
+#if (!AOT)
+		m_DefaultMethods = new MethodInfo[] { GetStaticGenericMethod(Type, "Empty", m_ArgumentType, m_ReturnType) };
+#endif
 
 		m_DelegateTypes = new Type[] { typeof(vp_Message<,>.Sender<,>) };
 		Prefixes = new Dictionary<string, int>() { { "OnMessage_", 0 } };
 
-		if (m_DefaultMethods[0] != null)
+		if ((m_DefaultMethods != null) && (m_DefaultMethods[0] != null))
 			SetFieldToLocalMethod(m_Fields[0], m_DefaultMethods[0], MakeGenericType(m_DelegateTypes[0]));
 		
 	}

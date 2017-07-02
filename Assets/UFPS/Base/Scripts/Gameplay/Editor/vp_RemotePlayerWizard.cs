@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_RemotePlayerWizard.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	launched from the main UFPS editor 'Wizards' menu, this
 //					script creates a copy of the currently selected UFPS player
@@ -34,7 +34,7 @@ public class vp_RemotePlayerWizard
 
 		GameObject target = Selection.activeObject as GameObject;
 
-		if ((target == null) || (target.GetComponentInChildren<vp_FPCamera>() == null) && (target.GetComponentInChildren<vp_FPCamera>() == null))
+		if ((target == null) || (!vp_Utility.IsActive(target)) || (target.GetComponentInChildren<vp_FPController>() == null) && (target.GetComponentInChildren<vp_FPCamera>() == null))
 		{
 			EditorUtility.DisplayDialog("Failed to run wizard", "Please select the main gameobject of a 1st person player in the Hierarchy view (make sure it's active) and try again.", "OK");
 			return;

@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_MuzzleFlash.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	renders an additive, randomly rotated, fading out muzzleflash.
 //					if a light component is present, the light will fade in sync
@@ -53,7 +53,7 @@ public class vp_MuzzleFlash : MonoBehaviour
 		m_Renderer = GetComponent<Renderer>();
 		if (m_Renderer != null)
 		{
-			m_Material = GetComponent<Renderer>().material;
+			m_Material = m_Renderer.material;
 			if (m_Material != null)
 			{
 				// the muzzleflash is meant to use the 'Particles/Additive'

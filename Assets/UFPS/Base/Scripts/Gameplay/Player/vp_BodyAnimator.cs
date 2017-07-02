@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_BodyAnimator.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this script animates a human character model that needs to
 //					move around and use guns a lot! it is designed for use with
@@ -294,7 +294,7 @@ public class vp_BodyAnimator : MonoBehaviour
 	protected virtual void Awake()
 	{
 
-#if UNITY_IPHONE || UNITY_ANDROID
+#if UNITY_IOS || UNITY_ANDROID
 		Debug.LogError("Error ("+this+") This script from base UFPS is intended for desktop and not supported on mobile. Are you attempting to use a PC/Mac player prefab on IOS/Android?");
 		Component.DestroyImmediate(this);
 		return;
@@ -378,7 +378,8 @@ public class vp_BodyAnimator : MonoBehaviour
 		// --- forward motion animation speed ---
 
 		m_CurrentForward = Mathf.Lerp(m_CurrentForward, m_LocalVelocity.z, Time.deltaTime * MOVEMODIFIER);
-		m_CurrentForward = Mathf.Abs(m_CurrentForward) > 0.03f ? m_CurrentForward : 0.0f;
+		if(vp_Input.Instance.ControlType == 0)	// only do this if using keyboard, not joystick
+			m_CurrentForward = Mathf.Abs(m_CurrentForward) > 0.03f ? m_CurrentForward : 0.0f;
 
 		// --- strafe animation speed ---
 		if (Player.Crouch.Active)
@@ -390,25 +391,31 @@ public class vp_BodyAnimator : MonoBehaviour
 		}
 		else
 			m_CurrentStrafe = Mathf.Lerp(m_CurrentStrafe, GetStrafeDirection(), Time.deltaTime * 5);
-		m_CurrentStrafe = Mathf.Abs(m_CurrentStrafe) > 0.03f ? m_CurrentStrafe : 0.0f;
+
+		if (vp_Input.Instance.ControlType == 0)	// only do this if using keyboard, not gamepad
+			m_CurrentStrafe = Mathf.Abs(m_CurrentStrafe) > 0.03f ? m_CurrentStrafe : 0.0f;
 
 	}
 
 
 	/// <summary>
-	/// returns -1 if strafing left and 1 if right. NOTE: this is a
-	/// method rather than a property because it is overridden for
-	/// more stable input data in first person
+	/// returns a value indicating the strafe direction. on analog
+	/// input hardware, returns a float indicating the strafe speed
 	/// </summary>
 	protected virtual float GetStrafeDirection()
 	{
 
-		if (Player.InputMoveVector.Get().x < 0.0f)
-			return -1.0f;
-		else if (Player.InputMoveVector.Get().x > 0.0f)
-			return 1.0f;
+		// if using keyboard, return a binary value
+		if (vp_Input.Instance.ControlType == 0)
+		{
+			if (Player.InputMoveVector.Get().x < 0.0f)
+				return -1.0f;
+			else if (Player.InputMoveVector.Get().x > 0.0f)
+				return 1.0f;
+		}
 
-		return 0.0f;
+		// if using gamepad, return an analog value
+		return Player.InputMoveVector.Get().x;
 
 	}
 
@@ -980,15 +987,21 @@ public class vp_BodyAnimator : MonoBehaviour
 	protected virtual void OnStart_Attack()
 	{
 
-		// TEMP: time body animation better to throwing weapon projectile spawn
+		// TEST: time body animation better to throwing weapon projectile spawn
 		if (Player.CurrentWeaponType.Get() == (int)vp_Weapon.Type.Thrown)
 		{
-			vp_Timer.In(WeaponHandler.CurrentWeapon.GetComponent<vp_Shooter>().ProjectileSpawnDelay * 0.7f, () =>
-				{
-					m_AttackDoneTimer.Cancel();
-					Animator.SetBool(IsAttacking, true);
-					OnStop_Attack();
-				});
+			if (WeaponHandler.CurrentShooter != null)
+			{
+				vp_Timer.In(WeaponHandler.CurrentShooter.ProjectileSpawnDelay * 0.7f, () =>
+					{
+						if ((this != null) && (Animator != null))
+						{
+							m_AttackDoneTimer.Cancel();
+							Animator.SetBool(IsAttacking, true);
+							OnStop_Attack();
+						}
+					});
+			}
 		}
 		else
 		// ---
@@ -1006,8 +1019,11 @@ public class vp_BodyAnimator : MonoBehaviour
 		// for 'RefreshWeaponStates'
 		vp_Timer.In(0.5f, delegate()
 		{
-			Animator.SetBool(IsAttacking, false);
-			RefreshWeaponStates();
+			if ((this != null) && (Animator != null))
+			{
+				Animator.SetBool(IsAttacking, false);
+				RefreshWeaponStates();
+			}
 		}, m_AttackDoneTimer);
 
 	}
@@ -1022,9 +1038,15 @@ public class vp_BodyAnimator : MonoBehaviour
 		// for 'RefreshWeaponStates'
 		vp_Timer.In(0.5f, delegate()
 		{
-			if (!Player.Attack.Active)
-				Animator.SetBool(IsAttacking, false);
-			RefreshWeaponStates();
+			if((Player != null) && (Player.Attack != null))
+			{
+				if (!Player.Attack.Active)
+				{
+					if(Animator != null)
+						Animator.SetBool(IsAttacking, false);
+				}
+				RefreshWeaponStates();
+			}
 		}, m_AttackDoneTimer);
 
 	}

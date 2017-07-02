@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Inventory.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	an inventory system that can be used to give any gameobject
 //					(a player, a stash, a box, a vehicle trunk, a medical cabinet
@@ -330,7 +330,7 @@ public class vp_Inventory : MonoBehaviour
 
 
 	/// <summary>
-	/// internal method which can add items by type, amount and ID.
+	/// tries to add items by type, amount and ID.
 	/// </summary>
 	public virtual bool TryGiveItem(vp_ItemType itemType, int id)
 	{
@@ -378,6 +378,7 @@ public class vp_Inventory : MonoBehaviour
 	/// </summary>
 	protected virtual void DoAddItem(vp_ItemType type, int id)
 	{
+		//Debug.Log("DoAddItem");
 		ItemInstances.Add(new vp_ItemInstance(type, id));
 		if (SpaceEnabled)
 			m_UsedSpace += type.Space;
@@ -392,7 +393,7 @@ public class vp_Inventory : MonoBehaviour
 	/// </summary>
 	protected virtual void DoRemoveItem(vp_ItemInstance item)
 	{
-
+		//Debug.Log("DoRemoveItem");
 		if (item as vp_UnitBankInstance != null)
 		{
 			DoRemoveUnitBank(item as vp_UnitBankInstance);
@@ -415,6 +416,7 @@ public class vp_Inventory : MonoBehaviour
 	/// </summary>
 	protected virtual void DoAddUnitBank(vp_UnitBankType unitBankType, int id, int unitsLoaded)
 	{
+		//Debug.Log("DoAddUnitBank");
 		vp_UnitBankInstance bank = new vp_UnitBankInstance(unitBankType, id, this);
 		m_UnitBankInstances.Add(bank);
 		m_FirstItemsDirty = true;
@@ -433,6 +435,7 @@ public class vp_Inventory : MonoBehaviour
 	/// </summary>
 	protected virtual void DoRemoveUnitBank(vp_UnitBankInstance bank)
 	{
+		//Debug.Log("DoRemoveUnitBank");
 		if (!bank.IsInternal)
 		{
 			m_UnitBankInstances.RemoveAt(m_UnitBankInstances.IndexOf(bank));
@@ -456,6 +459,7 @@ public class vp_Inventory : MonoBehaviour
 	/// </summary>
 	public virtual bool DoAddUnits(vp_UnitBankInstance bank, int amount)
 	{
+		//Debug.Log("DoAddUnits");
 		return bank.DoAddUnits(amount);
 	}
 
@@ -465,6 +469,7 @@ public class vp_Inventory : MonoBehaviour
 	/// </summary>
 	public virtual bool DoRemoveUnits(vp_UnitBankInstance bank, int amount)
 	{
+		//Debug.Log("DoRemoveUnits");
 		return bank.DoRemoveUnits(amount);
 	}
 	
@@ -477,7 +482,7 @@ public class vp_Inventory : MonoBehaviour
 	/// </summary>
 	public virtual bool TryGiveUnits(vp_UnitType unitType, int amount)
 	{
-				
+		//Debug.Log("TryGiveUnits: " + unitType + ", " + amount);
 		if (GetItemCap(unitType) == 0)
 			return false;
 
@@ -536,7 +541,7 @@ public class vp_Inventory : MonoBehaviour
 	/// </summary>
 	public virtual bool TryGiveUnitBank(vp_UnitBankType unitBankType, int unitsLoaded, int id)
 	{
-
+		//Debug.Log("TryGiveUnitBank: " + unitBankType + ", " + unitsLoaded);
 		if (unitBankType == null)
 		{
 			Debug.LogError("Error (" + vp_Utility.GetErrorLocation() + ") 'unitBankType' was null.");
@@ -935,7 +940,7 @@ public class vp_Inventory : MonoBehaviour
 	/// </summary>
 	public virtual vp_ItemInstance GetItem(string itemTypeName)
 	{
-
+		//Debug.Log("itemTypeName: " + itemTypeName);
 		for (int v = 0; v < InternalUnitBanks.Count; v++)
 		{
 			if (InternalUnitBanks[v].UnitType.name == itemTypeName)
@@ -1404,7 +1409,6 @@ public class vp_Inventory : MonoBehaviour
 	/// </summary>
 	public virtual void Clear()
 	{
-
 
 		for (int v = InternalUnitBanks.Count - 1; v > -1; v--)
 		{

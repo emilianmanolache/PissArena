@@ -13,5 +13,3 @@ About these files:
       Updated arm mesh (two arms) with a simple rig for modo in lxo format. Skin-weighted and full body IK with goals assigned. Animating with the Pose-tool in Modo works like a charm.
 
 - Note that the demo scenes currently use an older, non-rigged, single arm model.
-
-- For some useful info on weapon scene setup, and more file formats see the official Ultimate FPS Camera FAQ on www.visionpunk.com

@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_PlayerDamageHandler.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a version of the vp_DamageHandler class extended for use with
 //					vp_PlayerEventHandler
@@ -42,12 +42,19 @@ public class vp_PlayerDamageHandler : vp_DamageHandler
 
 	// falling damage
 	public bool AllowFallDamage = true;
-	public float FallImpactThreshold = .15f;
+	public float FallDamageThreshold = 0.15f;
 	public bool DeathOnFallImpactThreshold = false;
-	public Vector2 FallImpactPitch = new Vector2(1.0f, 1.5f);	// random pitch range for fall impact sounds
-	public List<AudioClip> FallImpactSounds = new List<AudioClip>();
 	protected float m_FallImpactMultiplier = 2;
 	protected bool m_InventoryWasEnabledAtStart = true;		// helper feature to facilitate developing with a temp-disabled inventory
+
+	// NOTE: fall impact fx have moved to vp_PlayerFootFXHandler!
+	// when hitting the ground, this script now only deals with damage
+	[System.Obsolete("Please use the 'FallDamageThreshold' parameter instead.")]
+	public float FallImpactThreshold
+	{
+		get { return FallDamageThreshold; }
+		set { FallDamageThreshold = value; }
+	}
 
 	protected List<Collider> m_Colliders = null;
 
@@ -78,6 +85,8 @@ public class vp_PlayerDamageHandler : vp_DamageHandler
 	protected override void OnEnable()
 	{
 
+		base.OnEnable();
+
 		if (Player != null)
 			Player.Register(this);
 
@@ -90,6 +99,8 @@ public class vp_PlayerDamageHandler : vp_DamageHandler
 	/// </summary>
 	protected override void OnDisable()
 	{
+
+		base.OnDisable();
 
 		if (Player != null)
 			Player.Unregister(this);
@@ -105,7 +116,6 @@ public class vp_PlayerDamageHandler : vp_DamageHandler
 
 		if (Inventory != null)
 			m_InventoryWasEnabledAtStart = Inventory.enabled;
-
 
 	}
 	
@@ -153,7 +163,7 @@ public class vp_PlayerDamageHandler : vp_DamageHandler
 		Player.Interact.Stop();
 
 		// if we're the master in multiplayer, send kill event to other players
-		if (vp_Gameplay.isMultiplayer && vp_Gameplay.isMaster)
+		if (vp_Gameplay.IsMultiplayer && vp_Gameplay.IsMaster)
 		{
 			//Debug.Log("sending kill event from master scene to vp_MasterClient");
 			vp_GlobalEvent<Transform>.Send("TransmitKill", transform.root);
@@ -210,13 +220,19 @@ public class vp_PlayerDamageHandler : vp_DamageHandler
 
 
 	/// <summary>
-	/// gets the player's max health 
+	/// gets or sets the player's max health. if the value is lower than
+	/// CurrentHealth, then that will be capped to the new MaxHealth
 	/// </summary>
 	protected virtual float OnValue_MaxHealth
 	{
 		get
 		{
 			return MaxHealth;
+		}
+		set
+		{
+			MaxHealth = value;
+			CurrentHealth = Mathf.Max(CurrentHealth, MaxHealth);
 		}
 	}
 
@@ -227,12 +243,26 @@ public class vp_PlayerDamageHandler : vp_DamageHandler
 	protected virtual void OnMessage_FallImpact(float impact)
 	{
 
-		if (Player.Dead.Active || !AllowFallDamage || impact <= FallImpactThreshold)
+		if (!AllowFallDamage)
 			return;
 
-		vp_AudioUtility.PlayRandomSound(m_Audio, FallImpactSounds, FallImpactPitch);
+		if (Player.Dead.Active)
+			return;
 
+		if (impact <= FallDamageThreshold)
+			return;
+
+#if !ANTICHEAT
 		float damage = (float)Mathf.Abs((float)(DeathOnFallImpactThreshold ? MaxHealth : MaxHealth * impact));
+#else
+		// for Anti-Cheat Toolkit support (see the manual for more info).
+		// ObscuredFloat does not appear to work with ternary operator ("?")
+		float damage;
+		if (DeathOnFallImpactThreshold)
+			damage = MaxHealth;
+		else
+			damage = (MaxHealth * impact);
+#endif
 
 		Damage(new vp_DamageInfo(damage, transform, transform, vp_DamageInfo.DamageType.Fall));
 

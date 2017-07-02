@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPSDemo3.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	PLEASE NOTE: this class is very specialized	for the demo
 //					walkthrough and is not meant to be used as the starting
@@ -108,7 +108,7 @@ public class vp_FPSDemo3 : MonoBehaviour
 
 		}
 
-		m_Demo.DrawBoxes("welcome", "Featuring the SMOOTHEST CONTROLS and the most POWERFUL FPS CAMERA\navailable for Unity, Ultimate FPS is an awesome script pack for achieving that special\n 'AAA FPS' feeling. This demo will walk you through some of its core features ...\n", null, ImageRightArrow, null, null);
+		m_Demo.DrawBoxes("welcome", "Featuring the SMOOTHEST CONTROLS and the most POWERFUL FPS CAMERA\navailable for Unity, UFPS is an awesome script pack for achieving that special\n 'AAA FPS' feeling. This demo will walk you through some of its core features ...\n", null, ImageRightArrow, null, null);
 		m_Demo.ForceCameraShake();
 
 	}
@@ -169,7 +169,7 @@ public class vp_FPSDemo3 : MonoBehaviour
 			m_OutroAngle.y + (Mathf.Cos(((Time.time - m_OutroStartTime) + 50) * 0.03f) * 20)
 			);
 
-		m_Demo.DrawBoxes("putting it all together", "Included in the package is full, well commented C# source code, an in-depth 70-page MANUAL in PDF format, a game-ready FPS PLAYER prefab along with all the scripts and content used in this demo. A FANTASTIC starting point (or upgrade) for any FPS project.\nBest part? It can be yours in a minute. GET IT NOW on visionpunk.com!", ImageLeftArrow, ImageCheckmark, delegate() { m_Demo.LoadLevel(0); });
+		m_Demo.DrawBoxes("putting it all together", "Included in the package is full, well commented C# source code, an in-depth 70-page MANUAL in PDF format, a game-ready FPS PLAYER prefab along with all the scripts and content used in this demo. A FANTASTIC starting point (or upgrade) for any FPS project.\nBest part? It can be yours in a minute. GET IT NOW on opsive.com!", ImageLeftArrow, ImageCheckmark, delegate() { m_Demo.LoadLevel(0); });
 		m_Demo.DrawImage(ImageAllParams);
 
 	}

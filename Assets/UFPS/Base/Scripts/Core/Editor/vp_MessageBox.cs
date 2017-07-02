@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_MessageBox.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a classic OS-type message box with a range of buttons and
 //					possible return values
@@ -87,7 +87,7 @@ public class vp_MessageBox : EditorWindow
 	{
 
 		// buttons (done first, or message text will be able to block mouse input)
-		GUILayout.BeginArea(new Rect(20, Screen.height - 60, Screen.width - 40, Screen.height - 40));
+		GUILayout.BeginArea(new Rect(20, position.height - 60, position.width - 40, position.height - 40));
 		GUILayout.BeginHorizontal();
 		switch (m_Mode)
 		{

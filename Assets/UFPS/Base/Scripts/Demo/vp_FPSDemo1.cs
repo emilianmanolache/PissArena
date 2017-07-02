@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPSDemo1.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	PLEASE NOTE: this class is very specialized	for the demo
 //					walkthrough and is not meant to be used as the starting
@@ -299,7 +299,7 @@ public class vp_FPSDemo1 : MonoBehaviour
 
 		// draw the three big boxes at the top of the screen;
 		// the next & prev arrows, and the main text box
-		m_Demo.DrawBoxes("part ii: under the hood", "Ultimate FPS features a NEXT-GEN first person camera system with ultra smooth PROCEDURAL ANIMATION of player movements. Camera and weapons are manipulated using over 100 parameters, allowing for a vast range of super-lifelike behaviors.", null, m_ImageRightArrow);
+		m_Demo.DrawBoxes("part ii: under the hood", "UFPS features a cutting egde first person camera system with ultra smooth PROCEDURAL ANIMATION of player movements. Camera and weapons are manipulated using over 100 parameters, allowing for a vast range of super-lifelike behaviors.", null, m_ImageRightArrow);
 
 		// this bracket is only run the first frame of a new demo screen
 		// being rendered. it is used to make some initial settings
@@ -371,8 +371,7 @@ public class vp_FPSDemo1 : MonoBehaviour
 
 
 	/// <summary>
-	/// demo screen to show some example presets that are possible
-	/// with Ultimate FPS
+	/// demo screen to show some example presets that are possible with UFPS
 	/// </summary>
 	private void DemoExamples()
 	{
@@ -401,10 +400,13 @@ public class vp_FPSDemo1 : MonoBehaviour
 		// the current preset
 		if (m_Demo.ButtonSelection != m_ExamplesCurrentSel)
 		{
-
-
+			
 			vp_Utility.LockCursor = true;
 			m_Demo.ResetState();
+
+			vp_PlayerFootFXHandler footFX = FindObjectOfType<vp_PlayerFootFXHandler>();
+			if (footFX != null)
+				footFX.enabled = true;
 
 			m_Demo.PlayerEventHandler.Attack.Stop(0.5f);
 
@@ -464,6 +466,8 @@ public class vp_FPSDemo1 : MonoBehaviour
 					break;
 				case 6:	// --- Mech... or Dino? ---
 					SetWeapon(5, "MechOrDino", true, false);
+					if (footFX != null)
+						footFX.enabled = false;	// the mech example uses its own special footstep logic
 					m_UnFreezePosition = m_DrunkPos;
 					m_Demo.Controller.Stop();
 					m_Demo.Teleport(m_MechPos, m_MechAngle);
@@ -827,7 +831,7 @@ public class vp_FPSDemo1 : MonoBehaviour
 	private void DemoPivot()
 	{
 
-		m_Demo.DrawBoxes("weapon pivot", "The PIVOT POINT of the weapon model greatly affects movement pattern.\nManipulating it at runtime can be quite useful, and easy with Ultimate FPS!\nClick the examples below and move the camera around.", m_ImageLeftArrow, m_ImageRightArrow, delegate() { m_Demo.LoadLevel(2); });
+		m_Demo.DrawBoxes("weapon pivot", "The PIVOT POINT of the weapon model greatly affects movement pattern.\nManipulating it at runtime can be quite useful, and easy with UFPS!\nClick the examples below and move the camera around.", m_ImageLeftArrow, m_ImageRightArrow, delegate() { m_Demo.LoadLevel(2); });
 
 		if (m_Demo.FirstFrame)
 		{

@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPCamera.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a first person camera class with weapon rendering and animation
 //					features. animates the camera transform using springs, bob and
@@ -52,6 +52,14 @@ public class vp_FPCamera : vp_Component
 	protected bool m_DrawCameraCollisionDebugLine = false;
 	protected Vector3 PositionOnDeath = Vector3.zero;	// used for 3rd person death cam
 
+	public Vector3 SpringState
+	{
+		get
+		{
+			return (m_PositionSpring.State + m_PositionSpring2.State);
+		}
+	}
+
 	// camera rotation
 	public Vector2 RotationPitchLimit = new Vector2(90.0f, -90.0f);
 	public Vector2 RotationYawLimit = new Vector2(-360.0f, 360.0f);
@@ -92,7 +100,7 @@ public class vp_FPCamera : vp_Component
 	public delegate void BobStepDelegate();
 	public BobStepDelegate BobStepCallback;
 	public float BobStepThreshold = 10.0f;
-	protected float m_LastUpBob = 0.0f;
+	protected float m_LastYBob = 0.0f;
 	protected bool m_BobWasElevating = false;
 
 	// camera collision
@@ -103,6 +111,17 @@ public class vp_FPCamera : vp_Component
 	protected RaycastHit m_CameraHit;
 	public bool DrawCameraCollisionDebugLine { get { return m_DrawCameraCollisionDebugLine; } set { m_DrawCameraCollisionDebugLine = value; } }	// for editor use
 	public Vector3 CollisionVector { get { return m_CollisionVector; } }
+
+	// for temporary disabling of specific procedural camera motions at runtime,
+	//  bypassesing states (intended to be set directly by VR mode)
+	public bool MuteRoll;
+	public bool MuteBob;
+	public bool MuteShakes;
+	public bool MuteEarthquakes;
+	public bool MuteBombShakes;
+	public bool MuteFallImpacts;
+	public bool MuteHeadImpacts;
+	public bool MuteGroundStomps;
 
 	// event handler property cast as a playereventhandler
 	vp_FPPlayerEventHandler m_Player = null;
@@ -118,6 +137,7 @@ public class vp_FPCamera : vp_Component
 			return m_Player;
 		}
 	}
+
 
 	// rigidbody to look at for 3rd person death cam. NOTE: this will return
 	// the first rigidbody found under the player hierarchy which is assumed
@@ -137,9 +157,7 @@ public class vp_FPCamera : vp_Component
 	}
 
 
-	//////////////////////////////////////////////////////////
 	// angle properties
-	//////////////////////////////////////////////////////////
 
 	public Vector2 Angle
 	{
@@ -179,6 +197,9 @@ public class vp_FPCamera : vp_Component
 	}
 
 
+	public bool DisableVRModeOnStartup = false;
+
+
 	/// <summary>
 	/// in 'Awake' we do things that need to be run once at the
 	/// very beginning. NOTE: as of Unity 4, gameobject hierarchy
@@ -199,7 +220,7 @@ public class vp_FPCamera : vp_Component
 		// this also prevents shell casings from colliding with the charactercollider
 		Parent.gameObject.layer = vp_Layer.LocalPlayer;
 
-		// TODO: removed for multiplayer. evaluate consequences
+		// TEST: removed for multiplayer. please report if this causes trouble
 		//foreach (Transform b in Parent)
 		//{
 		//	if (b.gameObject.layer != vp_Layer.RemotePlayer)
@@ -208,13 +229,15 @@ public class vp_FPCamera : vp_Component
 	
 		// main camera initialization
 		// render everything except body and weapon
-		GetComponent<Camera>().cullingMask &= ~((1 << vp_Layer.LocalPlayer) | (1 << vp_Layer.Weapon));
-		//GetComponent<Camera>().depth = 0;
+		Camera.cullingMask &= ~((1 << vp_Layer.LocalPlayer) | (1 << vp_Layer.Weapon));
+		Camera.depth = 0;
 
 		// weapon camera initialization
 		// find a regular Unity Camera component existing in a child
 		// gameobject to the FPSCamera's gameobject. if we don't find
-		// a weapon cam, that's OK (some games don't have weapons)
+		// a weapon cam, that's OK (some games don't have weapons).
+		// NOTE: we don't use GetComponentInChildren here because that
+		// would return the MainCamera (on this transform)
 		Camera weaponCam = null;
 		foreach (Transform t in Transform)
 		{
@@ -225,7 +248,7 @@ public class vp_FPCamera : vp_Component
 				weaponCam.transform.localEulerAngles = Vector3.zero;
 				weaponCam.clearFlags = CameraClearFlags.Depth;
 				weaponCam.cullingMask = (1 << vp_Layer.Weapon);	// only render the weapon
-				//weaponCam.depth = 1;
+				weaponCam.depth = 1;
 				weaponCam.farClipPlane = 100;
 				weaponCam.nearClipPlane = 0.01f;
 				weaponCam.fieldOfView = 60;
@@ -238,19 +261,23 @@ public class vp_FPCamera : vp_Component
 		// --- primary position spring ---
 		// this is used for all sorts of positional force acting on the camera
 		m_PositionSpring = new vp_Spring(Transform, vp_Spring.UpdateMode.Position, false);
-		m_PositionSpring.MinVelocity = 0.00001f;
+		m_PositionSpring.MinVelocity = 0.0f;
 		m_PositionSpring.RestState = PositionOffset;
 
 		// --- secondary position spring ---
 		// this is mainly intended for positional force from recoil, stomping and explosions
 		m_PositionSpring2 = new vp_Spring(Transform, vp_Spring.UpdateMode.PositionAdditiveLocal, false);
-		m_PositionSpring2.MinVelocity = 0.00001f;
+		m_PositionSpring2.MinVelocity = 0.0f;
 
 		// --- rotation spring ---
 		// this is used for all sorts of angular force acting on the camera
 		m_RotationSpring = new vp_Spring(Transform, vp_Spring.UpdateMode.RotationAdditiveLocal, false);
-		m_RotationSpring.MinVelocity = 0.00001f;
+		m_RotationSpring.MinVelocity = 0.0f;
 
+#if UNITY_EDITOR
+		if (DisableVRModeOnStartup && UnityEngine.VR.VRSettings.enabled)
+			UnityEngine.VR.VRSettings.enabled = false;
+#endif
 
 	}
 
@@ -379,30 +406,17 @@ public class vp_FPCamera : vp_Component
 											(Vector3.Scale(m_PositionSpring2.State, Vector3.up)));	// don't shake camera sideways in third person
 
 		// prevent camera from intersecting objects
-		if (HasCollision)
-			DoCameraCollision();
+		TryCameraCollision();
 
-        // position and rotate piss gameobject accordingly
-        GameObject pissObject = GameObject.FindGameObjectsWithTag("playerPiss")[0];
-        var currentPosition = transform.position;
-        currentPosition.y -= 0.15f;
-        //currentPosition.z += 0.15f;
-        pissObject.transform.position = currentPosition;
-
-        var rotationVector = transform.rotation.eulerAngles;
-        rotationVector.x -= 20;
-        var currentRotation = Quaternion.Euler(rotationVector);
-        pissObject.transform.rotation = currentRotation;
-
-        // rotate the parent gameobject (i.e. player model)
-        // NOTE: this rotation does not pitch the player model, it only applies yaw
-        Quaternion xQuaternion = Quaternion.AngleAxis(m_Yaw, Vector3.up);
+		// rotate the parent gameobject (i.e. player model)
+		// NOTE: this rotation does not pitch the player model, it only applies yaw
+		Quaternion xQuaternion = Quaternion.AngleAxis(m_Yaw, Vector3.up);
 		Quaternion yQuaternion = Quaternion.AngleAxis(0, Vector3.left);
 		Parent.rotation =
 			vp_MathUtility.NaNSafeQuaternion((xQuaternion * yQuaternion), Parent.rotation);
 
-        // pitch and yaw the camera
-        yQuaternion = Quaternion.AngleAxis(-m_Pitch, Vector3.left);
+		// pitch and yaw the camera
+		yQuaternion = Quaternion.AngleAxis(-m_Pitch, Vector3.left);
 		Transform.rotation =
 			vp_MathUtility.NaNSafeQuaternion((xQuaternion * yQuaternion), Transform.rotation);
 
@@ -466,7 +480,7 @@ public class vp_FPCamera : vp_Component
 
 		m_Final3rdPersonCameraOffset -= Transform.position;
 
-		DoCameraCollision();
+		TryCameraCollision();
 
 		LookPoint = GetLookPoint();
 
@@ -478,8 +492,11 @@ public class vp_FPCamera : vp_Component
 	/// raycasting from the controller to the camera and blocking
 	/// the camera on the first object hit
 	/// </summary>
-	public virtual void DoCameraCollision()
+	public virtual void TryCameraCollision()
 	{
+
+		if (!HasCollision)
+			return;
 
 		// start position is the center of the character controller
 		// and height of the camera PositionOffset. this will detect
@@ -608,7 +625,7 @@ public class vp_FPCamera : vp_Component
 
 		RenderingZoomDamping = Mathf.Max(RenderingZoomDamping, 0.01f);
 		float zoom = 1.0f - ((m_FinalZoomTime - Time.time) / RenderingZoomDamping);
-		gameObject.GetComponent<Camera>().fieldOfView = Mathf.SmoothStep(gameObject.GetComponent<Camera>().fieldOfView, RenderingFieldOfView + ZoomOffset, zoom);
+		Camera.fieldOfView = Mathf.SmoothStep(Camera.fieldOfView, RenderingFieldOfView + ZoomOffset, zoom);
 
 	}
 
@@ -619,7 +636,7 @@ public class vp_FPCamera : vp_Component
 	public void RefreshZoom()
 	{
 		float zoom = 1.0f - ((m_FinalZoomTime - Time.time) / RenderingZoomDamping);
-		gameObject.GetComponent<Camera>().fieldOfView = Mathf.SmoothStep(gameObject.GetComponent<Camera>().fieldOfView, RenderingFieldOfView + ZoomOffset, zoom);
+		Camera.fieldOfView = Mathf.SmoothStep(Camera.fieldOfView, RenderingFieldOfView + ZoomOffset, zoom);
 	}
 
 
@@ -641,7 +658,7 @@ public class vp_FPCamera : vp_Component
 	public virtual void SnapZoom()
 	{
 
-		gameObject.GetComponent<Camera>().fieldOfView = RenderingFieldOfView + ZoomOffset;
+		Camera.fieldOfView = RenderingFieldOfView + ZoomOffset;
 
 	}
 
@@ -655,6 +672,9 @@ public class vp_FPCamera : vp_Component
 	/// </summary>
 	protected virtual void UpdateShakes()
 	{
+
+		if (MuteShakes)
+			return;
 
 		// apply camera shakes
 		if (ShakeSpeed != 0.0f)
@@ -678,6 +698,9 @@ public class vp_FPCamera : vp_Component
 	protected virtual void UpdateBob()
 	{
 
+		if (MuteBob)
+			return;
+
 		if (BobAmplitude == Vector4.zero || BobRate == Vector4.zero)
 			return;
 
@@ -700,15 +723,19 @@ public class vp_FPCamera : vp_Component
 
 		m_CurrentBobAmp.y = (m_BobSpeed * (BobAmplitude.y * -0.0001f));
 		m_CurrentBobVal.y = (Mathf.Cos(Time.time * (BobRate.y * 10.0f))) * m_CurrentBobAmp.y;
+		m_CurrentBobVal.y = vp_MathUtility.SnapToZero(m_CurrentBobVal.y, 0.0003f);
 
 		m_CurrentBobAmp.x = (m_BobSpeed * (BobAmplitude.x * 0.0001f));
 		m_CurrentBobVal.x = (Mathf.Cos(Time.time * (BobRate.x * 10.0f))) * m_CurrentBobAmp.x;
+		m_CurrentBobVal.x = vp_MathUtility.SnapToZero(m_CurrentBobVal.x, 0.0003f);
 
 		m_CurrentBobAmp.z = (m_BobSpeed * (BobAmplitude.z * 0.0001f));
 		m_CurrentBobVal.z = (Mathf.Cos(Time.time * (BobRate.z * 10.0f))) * m_CurrentBobAmp.z;
+		m_CurrentBobVal.z = vp_MathUtility.SnapToZero(m_CurrentBobVal.z, 0.0003f);
 
 		m_CurrentBobAmp.w = (m_BobSpeed * (BobAmplitude.w * 0.0001f));
 		m_CurrentBobVal.w = (Mathf.Cos(Time.time * (BobRate.w * 10.0f))) * m_CurrentBobAmp.w;
+		m_CurrentBobVal.w = vp_MathUtility.SnapToZero(m_CurrentBobVal.w, 0.0003f);
 
 		m_PositionSpring.AddForce((Vector3)m_CurrentBobVal * Time.timeScale);
 
@@ -717,7 +744,7 @@ public class vp_FPCamera : vp_Component
 		m_LastBobSpeed = m_BobSpeed;
 
 		DetectBobStep(m_BobSpeed, m_CurrentBobVal.y);
-
+		
 	}
 
 
@@ -727,7 +754,7 @@ public class vp_FPCamera : vp_Component
 	/// speed is higher than the bob step threshold). this can
 	/// be used for various footstep sounds and behaviors.
 	/// </summary>
-	protected virtual void DetectBobStep(float speed, float upBob)
+	protected virtual void DetectBobStep(float speed, float yBob)
 	{
 
 		if (BobStepCallback == null)
@@ -736,13 +763,17 @@ public class vp_FPCamera : vp_Component
 		if (speed < BobStepThreshold)
 			return;
 
-		bool elevating = (m_LastUpBob < upBob) ? true : false;
-		m_LastUpBob = upBob;
+		if (yBob > 0)
+			return;
 
-		if (elevating && !m_BobWasElevating)
+		if ((m_LastYBob < yBob) && !m_BobWasElevating)
+		{
+			//Debug.Log(yBob + " <------------------");
 			BobStepCallback();
+		}
 
-		m_BobWasElevating = elevating;
+		m_BobWasElevating = (m_LastYBob < yBob);
+		m_LastYBob = yBob;
 
 	}
 
@@ -753,6 +784,9 @@ public class vp_FPCamera : vp_Component
 	/// </summary>
 	protected virtual void UpdateSwaying()
 	{
+
+		if (MuteRoll)
+			return;
 
 		Vector3 localVelocity = Transform.InverseTransformDirection(FPController.CharacterController.velocity * 0.016f) * Time.timeScale;
 		AddRollForce(localVelocity.x * RotationStrafeRoll);
@@ -766,6 +800,9 @@ public class vp_FPCamera : vp_Component
 	/// </summary>
 	protected virtual void UpdateEarthQuake()
 	{
+
+		if (MuteEarthquakes)
+			return;
 
 		if (Player == null)
 			return;
@@ -812,6 +849,9 @@ public class vp_FPCamera : vp_Component
 	/// </summary>
 	public virtual void DoBomb(Vector3 positionForce, float minRollForce, float maxRollForce)
 	{
+
+		if (MuteBombShakes)
+			return;
 
 		AddForce2(positionForce);
 
@@ -973,7 +1013,7 @@ public class vp_FPCamera : vp_Component
 
 
 	/// <summary>
-	/// 
+	/// returns the world point that the player is looking at
 	/// </summary>
 	public Vector3 GetLookPoint()
 	{
@@ -1000,9 +1040,34 @@ public class vp_FPCamera : vp_Component
 		return ((Transform.position) + (Transform.forward * 1000));
 
 	}
+
+
+
+	/// <summary>
+	/// returns the world transform that the player is looking at. if 'layerMask'
+	/// is not provided, then 'vp_Layer.Mask.ExternalBlockers' will be used. 
+	/// </summary>
+	public Transform GetLookTransform(float maxRange, int layerMask = -1)
+	{
+
+		if (layerMask == -1)
+			layerMask = vp_Layer.Mask.ExternalBlockers;
+
+		// raycast to see if we hit an external blocker
+		if (Physics.Linecast(
+			Transform.position,	// aim source: position of camera taking 3rd person camera pos into account
+			((Transform.position) + (Transform.forward * maxRange)),		// max aim range
+			out m_LookPointHit,
+			layerMask) && !m_LookPointHit.collider.isTrigger &&	// only aim at non-local player solids
+			(Root.InverseTransformPoint(m_LookPointHit.point).z > 0.0f)	// don't aim at stuff between camera & local player
+			)
+			return m_LookPointHit.transform;
+
+		// looking at nothing
+		return null;
+
+	}
 	
-
-
 
 	/// <summary>
 	/// returns the contact point on the surface of the first physical
@@ -1038,6 +1103,9 @@ public class vp_FPCamera : vp_Component
 	protected virtual void OnMessage_FallImpact(float impact)
 	{
 
+		if (MuteFallImpacts)
+			return;
+
 		impact = (float)Mathf.Abs((float)impact * 55.0f);
 		// ('55' is for preset backwards compatibility)
 
@@ -1071,6 +1139,9 @@ public class vp_FPCamera : vp_Component
 	protected virtual void OnMessage_HeadImpact(float impact)
 	{
 
+		if (MuteHeadImpacts)
+			return;
+
 		if ((m_RotationSpring != null) && (Mathf.Abs(m_RotationSpring.State.z) < 30.0f))
 		{
 
@@ -1088,6 +1159,9 @@ public class vp_FPCamera : vp_Component
 	/// </summary>
 	protected virtual void OnMessage_CameraGroundStomp(float impact)
 	{
+
+		if (MuteGroundStomps)
+			return;
 
 		AddForce2(new Vector3(0.0f, -1.0f, 0.0f) * impact);
 

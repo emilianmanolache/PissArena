@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_SimpleAITurret.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	just a very quick test to verify that vp_Shooter can be used
 //					independently of the FPPlayer
@@ -25,6 +25,7 @@ public class vp_SimpleAITurret : MonoBehaviour
 	protected vp_Shooter m_Shooter = null;
 	protected Transform m_Transform = null;
 	protected Transform m_Target = null;
+	protected Collider m_TargetCollider = null;
 	protected vp_Timer.Handle m_Timer = new vp_Timer.Handle();
 
 
@@ -52,7 +53,10 @@ public class vp_SimpleAITurret : MonoBehaviour
 				if (m_Target == null)
 					m_Target = ScanForLocalPlayer();
 				else
+				{
 					m_Target = null;
+					m_TargetCollider = null;
+				}
 			}, m_Timer);
 		}
 
@@ -73,10 +77,9 @@ public class vp_SimpleAITurret : MonoBehaviour
 		foreach (Collider hit in colliders)
 		{
 
-			// found the local player within range, now see if we
-			// have line-of-sight
+			// found the local player within range, now see if we have line-of-sight
 			RaycastHit blocker;
-			Physics.Linecast(m_Transform.position, hit.transform.position + Vector3.up, out blocker);
+			Physics.Linecast(m_Transform.position, hit.transform.position + Vector3.up, out blocker, vp_Layer.Mask.BulletBlockers);
 
 			// skip if raycast hit an object that wasn't the intended target
 			if (blocker.collider != null && blocker.collider != hit)
@@ -99,9 +102,14 @@ public class vp_SimpleAITurret : MonoBehaviour
 	{
 
 		// smoothly aim at target
-		Vector3 dir = (m_Target.GetComponent<Collider>().bounds.center - m_Transform.position);
-		Quaternion targetRotation = Quaternion.LookRotation(dir);
-		m_Transform.rotation = Quaternion.RotateTowards(m_Transform.rotation, targetRotation, Time.deltaTime * AimSpeed);
+		if (m_TargetCollider == null)
+			m_TargetCollider = m_Target.GetComponent<Collider>();
+		Vector3 dir;
+		if (m_TargetCollider != null)
+			dir = (m_TargetCollider.bounds.center - m_Transform.position);
+		else
+			dir = (m_Target.transform.position - m_Transform.position);
+		m_Transform.rotation = Quaternion.RotateTowards(m_Transform.rotation, Quaternion.LookRotation(dir), Time.deltaTime * AimSpeed);
 
 		// fire the shooter
 		if(Mathf.Abs(vp_3DUtility.LookAtAngleHorizontal(m_Transform.position, m_Transform.forward, m_Target.position)) < FireAngle)

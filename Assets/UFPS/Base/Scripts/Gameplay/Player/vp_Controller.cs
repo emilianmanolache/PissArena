@@ -1,15 +1,15 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Controller.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	abstract base class for player controllers in UFPS. contains a
-//					basic common feature for local, remote and AI players. has no
+//					basic common feature set for local, remote and AI players. has no
 //					movement logic and can not be used on its own. must be extended
 //					into a new script with special logic for that type of controller.
-//					see 'vp_FPController' and 'vp_RemoteController' for examples.
+//					see 'vp_FPController' and 'vp_CapsuleController' for examples.
 //
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -23,6 +23,7 @@ public abstract class vp_Controller : vp_Component
 
 	// ground collision
 	public bool Grounded { get { return m_Grounded; } }
+	public Transform GroundTransform { get { return m_GroundHitTransform; } }	// current transform of the collider we're standing on
 	protected bool m_Grounded = false;
 	protected RaycastHit m_GroundHit;					// contains info about the ground we're standing on, if any
 	protected Transform m_LastGroundHitTransform;		// ground hit from last frame: used to detect ground collision changes
@@ -32,9 +33,15 @@ public abstract class vp_Controller : vp_Component
 	protected bool m_OnNewGround = false;
 	protected bool m_WasFalling = false;
 
+	// ground surface
+	protected vp_SurfaceIdentifier m_CurrentGroundSurface = null;	// has info on the current SurfaceType we're standing on
+	public Texture m_CurrentGroundTexture = null;		// current ground texture we're standing on
+	public Texture m_CurrentTerrainTexture = null;		// current terrain texture we're standing on
+	
 	// gravity
 	public float PhysicsGravityModifier = 0.2f;			// affects fall speed
 	protected float m_FallSpeed = 0.0f;					// determines how quickly the controller falls in the world
+	protected const float PHYSICS_GRAVITY_MODIFIER_INTERNAL = 0.002f;	// retained for backwards compatibility
 
 	// motor
 	public bool MotorFreeFly = false;
@@ -44,7 +51,7 @@ public abstract class vp_Controller : vp_Component
 	public PushForceMode PhysicsPushMode = PushForceMode.Simplified;	// should pushing an object directly control its velocity (simplified) or apply accumulating kinetic force to it (realistic)
 	public float PhysicsPushInterval = 0.1f;			// minimum delay between each rigidbody push
 	public float PhysicsCrouchHeightModifier = 0.5f;	// how much to downscale the controller when crouching
-	public Vector3 m_Velocity = Vector3.zero;			// velocity calculated in same way as unity's character controller
+	protected Vector3 m_Velocity = Vector3.zero;			// velocity calculated in same way as unity's character controller
 	protected Vector3 m_PrevPosition = Vector3.zero;	// position on end of each fixed timestep
 	protected Vector3 m_PrevVelocity = Vector3.zero;	// used for calculating velocity, and detecting the start of a fall 
 	protected float m_NextAllowedPushTime;
@@ -60,10 +67,18 @@ public abstract class vp_Controller : vp_Component
 	}
 	
 	// moving platforms
+	[HideInInspector]
+	public Vector3 PositionOnPlatform = Vector3.zero;		// local position in relation to the movable object we're currently standing on
+	[System.Obsolete("Please use 'PositionOnPlatform' instead.")]
+	public Vector3 m_PositionOnPlatform
+	{
+		get	{	return PositionOnPlatform;	}
+		set	{	PositionOnPlatform = value;	}
+	}
+
 	protected Transform m_Platform = null;					// current rigidbody or object in the 'MovableObject' layer that we are standing on
-	public Vector3 m_PositionOnPlatform = Vector3.zero;		// local position in relation to the movable object we're currently standing on
 	protected float m_LastPlatformAngle;					// used for rotating controller along with movable object
-	public Vector3 m_LastPlatformPos = Vector3.zero;		// used for calculating inherited speed upon platform dismount
+	protected Vector3 m_LastPlatformPos = Vector3.zero;		// used for calculating inherited speed upon platform dismount
 	protected float m_MovingPlatformBodyYawDif = 0.0f;		// used to make the lower body rotate correctly while on rotating platforms
 
 	// crouching
@@ -79,6 +94,7 @@ public abstract class vp_Controller : vp_Component
 	protected const float FALL_IMPACT_MULTIPLIER = 0.075f;			// for backwards compatibility (pre 1.5.0)
 	protected const float NOFALL = -99999;							// when fall height is set to this value it means no fall impact will be reported
 
+
 	// event handler property cast as a playereventhandler
 	private vp_PlayerEventHandler m_Player = null;
 	protected vp_PlayerEventHandler Player
@@ -88,11 +104,9 @@ public abstract class vp_Controller : vp_Component
 			if (m_Player == null)
 			{
 				if (EventHandler != null)
-				{
 					m_Player = (vp_PlayerEventHandler)EventHandler;
-					if (m_Player == null)
-						Debug.LogError("Error ("+this+") This component requires a " + ((this is vp_FPController) ? "vp_FPPlayerEventHandler" : "vp_PlayerEventHandler") + " component!");
-				}
+				if (m_Player == null)
+					Debug.LogError("Error (" + this + ") This component requires a " + ((this is vp_FPController) ? "vp_FPPlayerEventHandler" : "vp_PlayerEventHandler") + " component!");
 			}
 			return m_Player;
 		}
@@ -180,9 +194,9 @@ public abstract class vp_Controller : vp_Component
 			return;
 
 		// calculate the controller's local position in relation to movable object
-		// NOTE: if this method is disabled in 'FixedUpdate', 'm_PositionOnPlatform'
+		// NOTE: if this method is disabled in 'FixedUpdate', 'PositionOnPlatform'
 		// will remain zero, disabling platform logic in other methods also
-		m_PositionOnPlatform = m_Platform.InverseTransformPoint(m_Transform.position);
+		PositionOnPlatform = m_Platform.InverseTransformPoint(m_Transform.position);
 
 		// store movement delta for calculating inherited velocity on dismount
 		m_LastPlatformPos = m_Platform.position;
@@ -306,7 +320,9 @@ public abstract class vp_Controller : vp_Component
 			//	Collider c = m_GroundHitTransform.GetComponentInChildren<Collider>();
 			//	m_GroundHitTransform = c.transform;
 			//}
-			m_Grounded = (m_GroundHitTransform.GetComponent<Collider>() != null);
+
+			m_Grounded = true;
+			
 			//Debug.Log(m_GroundHitTransform);
 
 		}
@@ -316,14 +332,17 @@ public abstract class vp_Controller : vp_Component
 			&& (m_LastGroundHitTransform != null)
 			&& !Player.Jump.Active)
 			SetFallHeight(Transform.position.y);
+		
+		return;
 
 	}
-
-
+	
+	
 	/// <summary>
-	/// 
+	/// sets the value used for fall impact calculation
+	/// according to certain criteria
 	/// </summary>
-	void SetFallHeight(float height)
+	protected void SetFallHeight(float height)
 	{
 
 		// we can only track one fall at a time
@@ -353,13 +372,13 @@ public abstract class vp_Controller : vp_Component
 		if (m_Grounded && (m_FallSpeed <= 0.0f))
 		// when not falling, stick controller to the ground by a small, fixed gravity
 		{
-			m_FallSpeed = (Physics.gravity.y * (PhysicsGravityModifier * 0.002f) * vp_TimeUtility.AdjustedTimeScale);
+			m_FallSpeed = (Physics.gravity.y * (PhysicsGravityModifier * PHYSICS_GRAVITY_MODIFIER_INTERNAL) * vp_TimeUtility.AdjustedTimeScale);
 			return;
 		}
 		else
 		{
 
-			m_FallSpeed += (Physics.gravity.y * (PhysicsGravityModifier * 0.002f) * vp_TimeUtility.AdjustedTimeScale);
+			m_FallSpeed += (Physics.gravity.y * (PhysicsGravityModifier * PHYSICS_GRAVITY_MODIFIER_INTERNAL) * vp_TimeUtility.AdjustedTimeScale);
 
 			// detect starting to fall MID-JUMP (for fall impact)
 			if ((m_Velocity.y < 0) && (m_PrevVelocity.y >= 0.0f))
@@ -476,6 +495,14 @@ public abstract class vp_Controller : vp_Component
 	/// </summary>
 	public void PushRigidbody(Rigidbody rigidbody, Vector3 moveDirection, PushForceMode pushForcemode, Vector3 point)
 	{
+
+		if (PhysicsPushForce == 0.0f)
+			return;
+
+		// riding and pushing platforms at the same time does not work
+		// with simplified push force
+		if ((rigidbody.gameObject.layer == vp_Layer.MovingPlatform) && (pushForcemode == PushForceMode.Simplified))
+			return;
 
 		switch (pushForcemode)
 		{
@@ -599,6 +626,17 @@ public abstract class vp_Controller : vp_Component
 
 
 	/// <summary>
+	/// gets or sets the current controller position in relation to the
+	/// current platform. only works if 'm_Platform' is set
+	/// </summary>
+	protected virtual Vector3 OnValue_PositionOnPlatform
+	{
+		get { return ((m_Platform == null) ? Vector3.zero : PositionOnPlatform); }
+		set { PositionOnPlatform = ((m_Platform == null) ? Vector3.zero : value); }
+	}
+
+
+	/// <summary>
 	/// gets or sets the world position of the controller
 	/// </summary>
 	protected virtual Vector3 OnValue_Position
@@ -645,6 +683,15 @@ public abstract class vp_Controller : vp_Component
 	/// in a manner compatible with the current type of collider
 	/// </summary>
 	protected abstract float OnValue_Height { get; }
+
+
+	/// <summary>
+	/// returns whether the controller is grounded
+	/// </summary>
+	protected virtual bool OnValue_Grounded
+	{
+		get { return m_Grounded; }
+	}
 
 
 }

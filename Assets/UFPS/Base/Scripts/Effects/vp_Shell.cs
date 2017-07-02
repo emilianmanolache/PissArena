@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Shell.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a shell casing with rigidbody physics adapted for more
 //					realistic behavior
@@ -23,6 +23,7 @@ public class vp_Shell : MonoBehaviour
 	Transform m_Transform = null;
 	Rigidbody m_Rigidbody = null;
 	AudioSource m_Audio = null;
+	Collider m_Collider = null;
 
 	public float LifeTime = 10;				// time to live in seconds for this type of shell
 	protected float m_RemoveTime = 0.0f;	// the exact time of removal for this particular shell (calculated in Start)
@@ -46,7 +47,7 @@ public class vp_Shell : MonoBehaviour
 		m_Transform = transform;
 		m_Rigidbody = GetComponent<Rigidbody>();
 		m_Audio = GetComponent<AudioSource>();
-		
+		m_Collider = GetComponent<Collider>();
 		m_Audio.playOnAwake = false;
 		m_Audio.dopplerLevel = 0.0f;
 
@@ -65,8 +66,9 @@ public class vp_Shell : MonoBehaviour
 		m_Rigidbody.velocity = Vector3.zero;
 		m_Rigidbody.angularVelocity = Vector3.zero;
 		m_Rigidbody.constraints = RigidbodyConstraints.None;
-		
-		GetComponent<Collider>().enabled = true;
+
+		if(m_Collider != null)
+			m_Collider.enabled = true;
 	
 	}
 
@@ -131,7 +133,8 @@ public class vp_Shell : MonoBehaviour
 		{
 			// allow this shell to fall through geometry and
 			// remove it after half a second
-			GetComponent<Collider>().enabled = false;
+			if (m_Collider != null)
+				m_Collider.enabled = false;
 			m_RemoveTime = Time.time + 0.5f;
 		}
 

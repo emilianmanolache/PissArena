@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_DamageHandler.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	class for having a gameobject take damage, die and respawn.
 //					any other object can do damage on this monobehaviour like so:
@@ -12,11 +12,16 @@
 ///////////////////////////////////////////////////////////////////////////////// 
 
 using UnityEngine;
+using System;
+using System.Collections.Generic;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
-using System;
-using System.Collections.Generic;
+
+#if UNITY_5_4_OR_NEWER
+using UnityEngine.SceneManagement;
+#endif
 
 
 public class vp_DamageHandler : MonoBehaviour
@@ -29,7 +34,10 @@ public class vp_DamageHandler : MonoBehaviour
 	public float MinDeathDelay = 0.0f;					// random timespan in seconds to delay death. good for cool serial explosions
 	public float MaxDeathDelay = 0.0f;
 	public float CurrentHealth = 0.0f;					// current health of the object instance
-	protected bool m_InstaKill = false;					// temporarily disables death delay, for example: on death by impact
+	protected bool m_InstaKill = false;                 // temporarily disables death delay, for example: on death by impact
+
+	[HideInInspector]
+	public float LastDamageTime = 0;                    // for any external scripts, e.g. 'vp_Regenerator' that need to know about this
 
 	// sounds
 	public AudioClip DeathSound = null;					// sound to play upon death
@@ -180,13 +188,18 @@ public class vp_DamageHandler : MonoBehaviour
 		Instances.Add(GetComponent<Collider>(), this);
 
 	}
-	
+
 
 	/// <summary>
 	/// 
 	/// </summary>
 	protected virtual void OnEnable()
 	{
+
+#if UNITY_5_4_OR_NEWER
+		SceneManager.sceneLoaded += OnLevelLoad;
+#endif
+
 	}
 
 
@@ -195,6 +208,11 @@ public class vp_DamageHandler : MonoBehaviour
 	/// </summary>
 	protected virtual void OnDisable()
 	{
+
+#if UNITY_5_4_OR_NEWER
+		SceneManager.sceneLoaded -= OnLevelLoad;
+#endif
+
 	}
 
 
@@ -216,7 +234,7 @@ public class vp_DamageHandler : MonoBehaviour
 			return;
 
 		// damage is always done in singleplayer, but only in multiplayer if you are the master
-		if (!vp_Gameplay.isMaster)
+		if (!vp_Gameplay.IsMaster)
 			return;
 
 		if (CurrentHealth <= 0.0f)
@@ -235,11 +253,15 @@ public class vp_DamageHandler : MonoBehaviour
 		if ((damageInfo.Type == vp_DamageInfo.DamageType.Bullet) && (m_Source == Transform))
 			return;
 
+		// --- damage will be inflicted ---
+
+		LastDamageTime = Time.time;
+
 		// subtract damage from health
 		CurrentHealth = Mathf.Min(CurrentHealth - damageInfo.Damage, MaxHealth);
 
 		// in multiplayer, report damage for score tracking purposes
-		if (vp_Gameplay.isMultiplayer && (damageInfo.Source != null))
+		if (vp_Gameplay.IsMultiplayer && (damageInfo.Source != null))
 			vp_GlobalEvent<Transform, Transform, float>.Send("TransmitDamage", Transform.root, damageInfo.OriginalSource, damageInfo.Damage);
 
 		// detect and transmit death as event
@@ -336,7 +358,7 @@ public class vp_DamageHandler : MonoBehaviour
 
 		m_InstaKill = false;
 
-		if (vp_Gameplay.isMultiplayer && vp_Gameplay.isMaster)
+		if (vp_Gameplay.IsMultiplayer && vp_Gameplay.IsMaster)
 		{
 			//Debug.Log("sending kill event from master scene to vp_MasterClient");
 			vp_GlobalEvent<Transform>.Send("TransmitKill", transform.root);
@@ -359,14 +381,17 @@ public class vp_DamageHandler : MonoBehaviour
 	
 
 	/// <summary>
-	/// removes any bullet decals currently childed to this object
+	/// removes any bullet decals currently childed to this object.
+	/// NOTE: the decals must be in the 'Debris' layer
 	/// </summary>
 	protected virtual void RemoveBulletHoles()
 	{
 
-		vp_HitscanBullet[] bullets = GetComponentsInChildren<vp_HitscanBullet>(true);
-		for(int i=0;i<bullets.Length; i++)
-			vp_Utility.Destroy(bullets[i].gameObject);
+		foreach(Transform t in Transform)
+		{
+			if(t.gameObject.layer == vp_Layer.Debris)
+				vp_Utility.Destroy(t.gameObject);
+		}
 
 	}
 
@@ -427,7 +452,11 @@ public class vp_DamageHandler : MonoBehaviour
 	/// <summary>
 	/// resets the cache of colliders and damagehandlers on level load
 	/// </summary>
+#if UNITY_5_4_OR_NEWER
+	protected void OnLevelLoad(Scene scene, LoadSceneMode mode)
+#else
 	protected void OnLevelWasLoaded()
+#endif
 	{
 
 		Instances.Clear();
@@ -533,9 +562,7 @@ public class vp_DamageHandler : MonoBehaviour
 				n.DeathEffect = p.DeathEffect;
 				n.DeathSound = p.DeathSound;
 				n.DeathSpawnObjects = p.DeathSpawnObjects;
-				n.FallImpactPitch = p.FallImpactPitch;
-				n.FallImpactSounds = p.FallImpactSounds;
-				n.FallImpactThreshold = p.FallImpactThreshold;
+				n.FallDamageThreshold = p.FallDamageThreshold;
 				n.ImpactDamageMultiplier = p.ImpactDamageMultiplier;
 				n.ImpactDamageThreshold = p.ImpactDamageThreshold;
 				n.m_Audio = p.m_Audio;

@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPWeaponEditor.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	custom inspector for the vp_FPSWeapon class
 //
@@ -154,7 +154,9 @@ public class vp_FPWeaponEditor : Editor
 				GUI.enabled = true;
 			}
 
-			if (Application.isPlaying && (m_Component.WeaponCamera == null) || (m_Component.WeaponCamera != null && !vp_Utility.IsActive(m_Component.WeaponCamera.gameObject)))
+			m_Component.Weapon3rdPersonInvisibleMaterial = (Material)EditorGUILayout.ObjectField("Invisible Material", m_Component.Weapon3rdPersonInvisibleMaterial, typeof(Material), false);
+			
+			if (Application.isPlaying && ((m_Component.WeaponCamera == null) || (m_Component.WeaponCamera != null && !vp_Utility.IsActive(m_Component.WeaponCamera.gameObject))))
 				GUI.enabled = false;
 			// weapon fov
 			Vector2 fovDirty = new Vector2(0.0f, m_Component.RenderingFieldOfView);

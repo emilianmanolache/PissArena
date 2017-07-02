@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_TimerEditor.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	vp_TimerEditor is a CustomEditor for the vp_Timer class.
 //					when 'vp_Timer.cs' is compiled with the 'DEBUG' define, a
@@ -12,10 +12,6 @@
 //					info in the Inspector, including created, active and
 //					inactive events and more
 //
-//					NOTE: this class is also part of the 'visionTimer' package, a
-//					complete time scripting framework for Unity. check it out if you
-//					need to do things like time bombs, stopwatches, analog clocks etc.
-//					http://u3d.as/content/vision-punk/vision-timer/3xc
 //
 /////////////////////////////////////////////////////////////////////////////////
 

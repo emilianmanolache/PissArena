@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPPlayerDamageHandler.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a version of the vp_PlayerDamageHandler class extended for use
 //					with the local player (vp_FPPlayerEventHandler) via which it
@@ -101,8 +101,8 @@ public class vp_FPPlayerDamageHandler : vp_PlayerDamageHandler
 
 
 	/// <summary>
-	/// applies damage to the player and sends a message to the
-	/// HUD that a damage flash should be played
+	/// applies damage to the player in simple float format, sends a damage
+	/// flash message to the HUD and twists the camera briefly
 	/// </summary>
 	public override void Damage(float damage)
 	{
@@ -124,7 +124,8 @@ public class vp_FPPlayerDamageHandler : vp_PlayerDamageHandler
 
 
 	/// <summary>
-	/// 
+	/// applies damage to the player in UFPS format, sends a damage
+	/// flash message to the HUD and twists the camera briefly
 	/// </summary>
 	public override void Damage(vp_DamageInfo damageInfo)
 	{

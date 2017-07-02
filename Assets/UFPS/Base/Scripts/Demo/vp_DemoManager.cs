@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_DemoManager.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	system for performing a walkthrough demo with multiple screens,
 //					navigation buttons and selection menus
@@ -11,6 +11,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 using UnityEngine;
+#if UNITY_5_4_OR_NEWER
+using UnityEngine.SceneManagement;
+#endif
 
 
 public class vp_DemoManager
@@ -61,10 +64,6 @@ public class vp_DemoManager
 	// pointer function for the last demo screen (checkmark button)
 	public delegate void LoadLevelCallback();
 
-	// this variable can be used to test framerate indepencence for
-	// various features. NOTE: will only work in the editor.
-	bool m_SimulateLowFPS = false;
-
 
 	/// </summary>
 	///
@@ -94,22 +93,26 @@ public class vp_DemoManager
 		//	ShowGUI = !ShowGUI;
 
 		// toggle fullscreen on 'U'
-		if (Input.GetKeyDown(KeyCode.U))
-			Screen.fullScreen = !Screen.fullScreen;
+		//if (Input.GetKeyDown(KeyCode.U))
+		//	Screen.fullScreen = !Screen.fullScreen;
 
 		// make fullscreen use desktop resolution
 		if (Screen.fullScreen == true && Screen.currentResolution.width != DesktopResolution.width)
 			Screen.SetResolution(DesktopResolution.width, DesktopResolution.height, true);
 
 		// toggle low framerate simulation on 'L'
-		if (Input.GetKeyDown(KeyCode.L))
-			m_SimulateLowFPS = !m_SimulateLowFPS;
-		if (m_SimulateLowFPS)
-		{
-			for (int v = 0; v < 20000000; v++) { }
-		}
+		//if (Input.GetKeyDown(KeyCode.L))
+		//	m_SimulateLowFPS = !m_SimulateLowFPS;	// NOTE: uncomment boolean below method
+		//if (m_SimulateLowFPS)
+		//{
+		//	for (int v = 0; v < 20000000; v++) { }
+		//}
 
 	}
+
+	// this variable can be used to test framerate indepencence for
+	// various features. NOTE: will only work in the editor.
+	//bool m_SimulateLowFPS = false;
 
 
 	/// <summary>
@@ -156,7 +159,7 @@ public class vp_DemoManager
 
 	/// <summary>
 	/// this method draws three big boxes at the top of the screen;
-	/// next & prev arrows, and a main text box
+	/// next and prev arrows, and a main text box
 	/// </summary>
 	public void DrawBoxes(string caption, string description, Texture imageLeftArrow, Texture imageRightArrow, LoadLevelCallback nextLevelCallback = null, LoadLevelCallback prevLevelCallback = null, bool drawBox = true)
 	{
@@ -635,7 +638,11 @@ public class vp_DemoManager
 
 		vp_Timer.In(m_FullScreenFadeOutDuration, delegate()
 		{
+#if UNITY_5_4_OR_NEWER
+			SceneManager.LoadScene(level);
+#else
 			Application.LoadLevel(level);
+#endif
 		});
 
 	}

@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_UpdateDialog.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a simple wizard to guide users through the asset update process
 //
@@ -27,7 +27,7 @@ public class vp_UpdateDialog : EditorWindow
 		ShowVersions,
 		AskPortal,
 		AssetStoreInfoMode,
-		VPComInfoMode
+		OpsiveComInfoMode
 	}
 	Mode m_Mode = Mode.ShowVersions;
 	private static GUIStyle m_AssetNameStyle = null;
@@ -73,9 +73,9 @@ public class vp_UpdateDialog : EditorWindow
 
 		window.m_Icon = m_UFPSIcon;
 
-		m_ReleaseNotesPath = "http://www.visionpunk.com/hub/assets/" + m_AssetCode + "/releasenotes";
+		m_ReleaseNotesPath = "http://www.opsive.com/assets/UFPS/hub/assets/" + m_AssetCode + "/releasenotes";
 
-		m_InfoFile = new WWW("http://www.visionpunk.com/content/assets/" + m_AssetCode + "/info.txt");
+		m_InfoFile = new WWW("http://www.opsive.com/assets/UFPS/content/assets/" + m_AssetCode + "/info.txt");
 		
 	}
 		
@@ -147,7 +147,7 @@ public class vp_UpdateDialog : EditorWindow
 			case Mode.ShowVersions: NormalMode(); break;
 			case Mode.AskPortal: PortalMode(); break;
 			case Mode.AssetStoreInfoMode: AssetStoreInfoMode(); break;
-			case Mode.VPComInfoMode: VPComInfoMode(); break;
+			case Mode.OpsiveComInfoMode: OpsiveComInfoMode(); break;
 
 		}
 
@@ -292,8 +292,8 @@ public class vp_UpdateDialog : EditorWindow
 		GUILayout.BeginHorizontal();
 		if (GUILayout.Button("\nUnity Asset Store\n"))
 			m_Mode = Mode.AssetStoreInfoMode;
-		if (GUILayout.Button("\nvisionpunk.com\n"))
-			m_Mode = Mode.VPComInfoMode;
+		if (GUILayout.Button("\nopsive.com\n"))
+			m_Mode = Mode.OpsiveComInfoMode;
 		GUILayout.EndHorizontal();
 
 		GUILayout.EndVertical();
@@ -342,7 +342,7 @@ public class vp_UpdateDialog : EditorWindow
 	/// <summary>
 	/// 
 	/// </summary>
-	void VPComInfoMode()
+	void OpsiveComInfoMode()
 	{
 
 		m_Icon = m_InfoIcon;
@@ -359,7 +359,7 @@ public class vp_UpdateDialog : EditorWindow
 		GUILayout.BeginHorizontal();
 		GUILayout.BeginVertical();
 		GUILayout.Space(10);
-		GUILayout.TextArea("Upon purchase, you received an email from VisionPunk Support with the subject line:", vp_EditorGUIUtility.LabelWrapStyle);
+		GUILayout.TextArea("Upon purchase, you received an email from Opsive Support with the subject line:", vp_EditorGUIUtility.LabelWrapStyle);
 		GUILayout.Space(10);
 		GUILayout.TextArea("Your " + m_AssetNameFormal + " File Download", AssetNameStyle);
 		GUILayout.Space(10);

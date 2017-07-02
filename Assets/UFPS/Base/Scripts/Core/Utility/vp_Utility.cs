@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Utility.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	miscellaneous utility functions
 //
@@ -264,6 +264,7 @@ public static class vp_Utility
 			// editor so we need to toggle brute force with custom arrow art
 			#if UNITY_EDITOR
 				Cursor.SetCursor((value ? InvisibleCursor : VisibleCursor), Vector2.zero, CursorMode.Auto);
+				Cursor.visible = value ? InvisibleCursor : VisibleCursor;
 			#else
 				// running in a build so toggling visibility should work fine
 				Cursor.visible = !value;
@@ -476,22 +477,16 @@ public static class vp_Utility
 	/// </summary>
     public static UnityEngine.Object Instantiate( UnityEngine.Object original, Vector3 position, Quaternion rotation )
     {
-    
-    	if(vp_PoolManager.Instance == null || !vp_PoolManager.Instance.enabled)
-    		return GameObject.Instantiate(original, position, rotation);
-    	else
-    		return vp_GlobalEventReturn<UnityEngine.Object, Vector3, Quaternion, UnityEngine.Object>.Send("vp_PoolManager Instantiate", original, position, rotation);
-    
-    }
-    
-    
-    /// <summary>
-	/// Replacement for Object.Destroy in order to utilize pooling
-	/// </summary>
-    public static void Destroy( UnityEngine.Object obj )
-    {
-    
-    	vp_Utility.Destroy( obj, 0 );
+
+		if (vp_PoolManager.Instance == null || !vp_PoolManager.Instance.enabled || !(original is GameObject))
+		{
+			return GameObject.Instantiate(original, position, rotation);
+		}
+		else
+		{
+			return vp_PoolManager.Spawn((original as GameObject), position, rotation);
+		}
+				//vp_GlobalEventReturn<UnityEngine.Object, Vector3, Quaternion, UnityEngine.Object>.Send("vp_PoolManager Instantiate", original, position, rotation);
     
     }
     
@@ -499,13 +494,34 @@ public static class vp_Utility
     /// <summary>
 	/// Replacement for Object.Destroy in order to utilize pooling
 	/// </summary>
-    public static void Destroy( UnityEngine.Object obj, float t )
+    public static void Destroy(UnityEngine.Object obj)
     {
+
+		if (vp_PoolManager.Instance == null || !vp_PoolManager.Instance.enabled || !(obj is GameObject))
+			UnityEngine.Object.Destroy(obj);
+		else
+			vp_PoolManager.Despawn(obj as GameObject);
+
+	}
     
-    	if(vp_PoolManager.Instance == null || !vp_PoolManager.Instance.enabled)
-	    	UnityEngine.Object.Destroy( obj, t );
-	    else
-	    	vp_GlobalEvent<UnityEngine.Object, float>.Send("vp_PoolManager Destroy", obj, t);
+    
+    /// <summary>
+	/// Replacement for Object.Destroy in order to utilize pooling
+	/// </summary>
+    public static void Destroy(UnityEngine.Object obj, float t)
+    {
+
+		if (vp_PoolManager.Instance == null || !vp_PoolManager.Instance.enabled || !(obj is GameObject))
+			UnityEngine.Object.Destroy(obj, t);
+		else
+		{
+			vp_Timer.In(Mathf.Max(0, t), () =>
+				{
+					vp_PoolManager.Despawn(obj as GameObject, t);
+				});
+		}
+
+			//vp_GlobalEvent<UnityEngine.Object, float>.Send("vp_PoolManager Destroy", obj, t);
     
     }
 

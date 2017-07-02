@@ -59,4 +59,4 @@ RotationOffset 10.86 -28.82 4.6
 RotationSpring2Stiffness 0.95
 RotationSpring2Damping 0.9456522
 AnimationType 1
-AnimationGrip 1
+AnimationGrip 2

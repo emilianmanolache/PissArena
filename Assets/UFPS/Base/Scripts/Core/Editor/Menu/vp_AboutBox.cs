@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_AboutBox.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a custom window for the main menu choice "About UFPS"
 //
@@ -18,9 +18,9 @@ public class vp_AboutBox : EditorWindow
 
 	static Vector2 m_DialogSize = new Vector2(260, 260);
 	static string m_Version = "Version " + UFPSInfo.Version;
-	static string m_Copyright = "© " + System.DateTime.Now.Year + " VisionPunk. All Rights Reserved.";
+	static string m_Copyright = "© " + System.DateTime.Now.Year + " Opsive. All Rights Reserved.";
 	public static Texture2D m_UFPSLogo = (Texture2D)Resources.Load("Icons/UFPS239x86", typeof(Texture2D));
-	public static Texture2D m_VPLogo = (Texture2D)Resources.Load("Icons/VisionPunk99x62", typeof(Texture2D));
+	public static Texture2D m_OpsiveLogo = (Texture2D)Resources.Load("Icons/Opsive99x62", typeof(Texture2D));
 	protected static GUIStyle m_SmallTextStyle = null;
 
 
@@ -55,19 +55,20 @@ public class vp_AboutBox : EditorWindow
 		if (m_UFPSLogo != null)
 			GUI.DrawTexture(new Rect(10, 10, m_UFPSLogo.width, m_UFPSLogo.height), m_UFPSLogo);
 
-		GUILayout.BeginArea(new Rect(20, 105, Screen.width - 40, Screen.height - 40));
+		GUILayout.BeginArea(new Rect(20, 105, position.width - 40, position.height - 40));
 		GUI.backgroundColor = Color.clear;
 		GUILayout.Label(m_Version);
-		GUILayout.Label(m_Copyright + "\n\n", SmallTextStyle);
-		if (GUILayout.Button("https://twitter.com/VisionPunk", vp_EditorGUIUtility.LinkStyle)) { Application.OpenURL("https://twitter.com/VisionPunk"); }
-		if (GUILayout.Button("http://forum.visionpunk.com", vp_EditorGUIUtility.LinkStyle)) { Application.OpenURL("http://forum.visionpunk.com"); }
+		GUILayout.Label(m_Copyright + "\n", SmallTextStyle);
+		if (GUILayout.Button("http://www.opsive.com/assets/UFPS", vp_EditorGUIUtility.LinkStyle)) { Application.OpenURL("http://www.opsive.com/assets/UFPS"); }
+		if (GUILayout.Button("http://www.opsive.com", vp_EditorGUIUtility.LinkStyle)) { Application.OpenURL("http://www.opsive.com"); }
+		if (GUILayout.Button("https://twitter.com/Opsive", vp_EditorGUIUtility.LinkStyle)) { Application.OpenURL("https://twitter.com/Opsive"); }
 		GUI.color = Color.white;
 		GUI.backgroundColor = Color.white;
 		GUILayout.EndArea();
 
 
-		if (m_UFPSLogo != null)
-			GUI.DrawTexture(new Rect(150, 200, m_VPLogo.width, m_VPLogo.height), m_VPLogo);
+		if (m_OpsiveLogo != null)
+			GUI.DrawTexture(new Rect(150, 200, m_OpsiveLogo.width, m_OpsiveLogo.height), m_OpsiveLogo);
 
 
 	}

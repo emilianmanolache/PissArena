@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_WeaponHandler.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	toggles between weapons and manipulates weapon states depending
 //					on currentplayer events and activities. this component requires
@@ -58,6 +58,22 @@ public class vp_WeaponHandler : MonoBehaviour
 	protected int m_CurrentWeaponIndex = -1;
 	protected vp_Weapon m_CurrentWeapon = null;
 	public vp_Weapon CurrentWeapon { get { return m_CurrentWeapon; } }
+	protected vp_Shooter m_CurrentShooter = null;
+	public vp_Shooter CurrentShooter
+	{
+		get
+		{
+
+			if (CurrentWeapon == null)
+				return null;
+
+			if ((m_CurrentShooter != null) && ((!m_CurrentShooter.enabled) || (!vp_Utility.IsActive(m_CurrentShooter.gameObject))))
+				return null;
+
+			return m_CurrentShooter;	// NOTE: this is set in 'ActivateWeapon'
+
+		}
+	}
 
 	// timers
 	protected vp_Timer.Handle m_SetWeaponTimer = new vp_Timer.Handle();
@@ -130,7 +146,7 @@ public class vp_WeaponHandler : MonoBehaviour
 		vp_FPCamera camera = transform.GetComponentInChildren<vp_FPCamera>();
 		if (camera != null)
 		{
-			camWeapons = GetWeaponList(Camera.main.transform);
+			camWeapons = GetWeaponList(camera.transform);
 			if ((camWeapons != null) && (camWeapons.Count > 0))
 				m_WeaponLists.Add(camWeapons);
 
@@ -301,13 +317,11 @@ public class vp_WeaponHandler : MonoBehaviour
 	
 
 	/// <summary>
-	/// this method will disable the currently activated weapon
-	/// and activate the one with 'weaponIndex'. if index is zero,
-	/// no weapon will be activated. NOTE: this method will make
-	/// any old weapon instantly pop away and make the new one
-	/// pop into view. for smooth transitions, please instead
-	/// use the vp_PlayerEventHandler 'SetWeapon' event.
-	/// example: m_Player.SetWeapon.TryStart(3);
+	/// this method will disable the currently activated weapon and activate
+	/// the one with 'weaponIndex'. if index is zero, no weapon will be activated.
+	/// NOTE: this method will make any old weapon INSTANTLY pop away and make the
+	/// new one pop into view. for smooth transitions, please instead use the
+	/// vp_PlayerEventHandler 'SetWeapon' event. example: m_Player.SetWeapon.TryStart(3);
 	/// </summary>
 	public virtual void SetWeapon(int weaponIndex)
 	{
@@ -336,14 +350,14 @@ public class vp_WeaponHandler : MonoBehaviour
 		ActivateWeapon(weaponIndex);
 		
 	}
-
-
+	
 
 	/// <summary>
 	/// 
 	/// </summary>
 	public void DeactivateAll(List<vp_Weapon> weaponList)
 	{
+
 		foreach (vp_Weapon weapon in weaponList)
 		{
 			weapon.ActivateGameObject(false);
@@ -351,6 +365,9 @@ public class vp_WeaponHandler : MonoBehaviour
 			if ((fpWeapon != null) && (fpWeapon.Weapon3rdPersonModel != null))
 				vp_Utility.Activate(fpWeapon.Weapon3rdPersonModel, false);
 		}
+
+		m_CurrentShooter = null;
+
 	}
 
 
@@ -368,6 +385,9 @@ public class vp_WeaponHandler : MonoBehaviour
 			if (m_CurrentWeapon != null)
 				m_CurrentWeapon.ActivateGameObject(true);
 		}
+
+		if(m_CurrentWeapon != null)
+			m_CurrentShooter = CurrentWeapon.GetComponent<vp_Shooter>();
 
 	}
 
@@ -417,7 +437,7 @@ public class vp_WeaponHandler : MonoBehaviour
 			{
 				if (StartWeapon > 0 && (StartWeapon < (Weapons.Count+1)))
 				{
-					if (!m_Player.SetWeapon.TryStart(StartWeapon))
+					if (!m_Player.SetWeapon.TryStart(StartWeapon) && !vp_Gameplay.IsMultiplayer)
 						Debug.LogWarning("Warning (" + this + ") Requested 'StartWeapon' (" + Weapons[StartWeapon-1].name + ") was denied, likely by the inventory. Make sure it's present in the inventory from the beginning.");
 				}
 			});
@@ -521,15 +541,18 @@ public class vp_WeaponHandler : MonoBehaviour
 		// the weapon switch
 		vp_Timer.In(SetWeaponRefreshStatesDelay, delegate()
 		{
-			m_Player.RefreshActivityStates();
-
-			if (m_CurrentWeapon != null)
+			if ((this != null) && (m_Player != null))
 			{
-				if (m_Player.CurrentWeaponAmmoCount.Get() == 0)
+				m_Player.RefreshActivityStates();
+
+				if (m_CurrentWeapon != null)
 				{
-					// the weapon came empty, but if we have ammo clips for it,
-					// try reloading in 0.5 secs
-					m_Player.AutoReload.Try();	// try to auto-reload
+					if (m_Player.CurrentWeaponAmmoCount.Get() == 0)
+					{
+						// the weapon came empty, but if we have ammo clips for it,
+						// try reloading in 0.5 secs
+						m_Player.AutoReload.Try();	// try to auto-reload
+					}
 				}
 			}
 
@@ -582,15 +605,15 @@ public class vp_WeaponHandler : MonoBehaviour
 		if (m_CurrentWeapon == null)
 			return false;
 
-		// can't attack if we're already attacking
+		// can't start attack if we're already attacking
 		if (m_Player.Attack.Active)
 			return false;
 
-		// can't attack if we're switching weapons
+		// can't start attack if we're switching weapons
 		if (m_Player.SetWeapon.Active)
 			return false;
 
-		// can't attack while reloading
+		// can't start attack while reloading
 		if (m_Player.Reload.Active)
 			return false;
 
@@ -611,10 +634,13 @@ public class vp_WeaponHandler : MonoBehaviour
 		// 'AttackStateDisableDelay' seconds
 		vp_Timer.In(AttackStateDisableDelay, delegate()
 		{
-			if (!m_Player.Attack.Active)
+			if ((this != null) && (m_Player != null))
 			{
-				if (m_CurrentWeapon != null)
-					m_CurrentWeapon.SetState("Attack", false);
+				if (!m_Player.Attack.Active)
+				{
+					if (m_CurrentWeapon != null)
+						m_CurrentWeapon.SetState("Attack", false);
+				}
 			}
 		}, m_DisableAttackStateTimer);
 
@@ -774,6 +800,14 @@ public class vp_WeaponHandler : MonoBehaviour
 		}
 	}
 
+
+	/// <summary>
+	/// 
+	/// </summary>
+	public virtual void OnMessage_Unwield()
+	{
+		m_Player.SetWeapon.TryStart(0);
+	}
 
 }
 

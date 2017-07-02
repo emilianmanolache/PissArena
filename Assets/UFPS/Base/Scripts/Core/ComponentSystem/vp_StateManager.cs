@@ -1,15 +1,15 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_StateManager.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	base class for extended MonoBehaviours. these components have
-//					the added functionality of support for the VisionPunk component
-//					and event systems, an 'Init' method that gets executed
-//					once after all 'Start' calls, and caching of gameobject
-//					properties and startup gameobject hierarchy
+//					the added functionality of support for the component and event
+//					systems, an 'Init' method that gets executed once after all
+//					'Start' calls, and caching of gameobject properties and startup
+//					gameobject hierarchy
 //
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -113,9 +113,9 @@ public class vp_StateManager
 		if (m_States == null)
 			return;
 		
-		foreach (int blockee in blocker.StatesToBlock)
+		for(int v = 0; v < blocker.StatesToBlock.Count; v++)
 		{
-			m_States[blockee].AddBlocker(blocker);
+			m_States[blocker.StatesToBlock[v]].AddBlocker(blocker);
 		}
 
 	}
@@ -204,7 +204,8 @@ public class vp_StateManager
 	/// and sets it on the component
 	/// </summary>
 	public void CombineStates()
-	{	
+	{
+		//Debug.Log("combineStates for " + this.m_Component.transform + " -> " + this.m_Component.GetType());
 
 		// go backwards so default state is applied first
 		for(int v = m_States.Count - 1; v > -1; v--)

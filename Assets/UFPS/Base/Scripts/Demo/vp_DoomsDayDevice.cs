@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_DoomsDayDevice.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	funky demo script to breathe life into the 'DoomsDayDevice'
 //
@@ -141,7 +141,7 @@ public class vp_DoomsDayDevice : MonoBehaviour
 
 			// slowly lower audio pitch
 			if (m_DeviceAudioSource != null)
-				m_DeviceAudioSource.pitch -= Time.deltaTime * 0.35f;
+				m_DeviceAudioSource.pitch = Mathf.Max(0.1f, (m_DeviceAudioSource.pitch - (Time.deltaTime * 0.35f)));
 
 			// cap max intensity of the pusling light
 			if (m_PulsingLight != null)

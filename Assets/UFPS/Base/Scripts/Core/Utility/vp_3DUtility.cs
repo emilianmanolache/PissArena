@@ -1,20 +1,16 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_3DUtility.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	miscellaneous 3D utility functions
 //
 /////////////////////////////////////////////////////////////////////////////////
 
 using UnityEngine;
-using System.Diagnostics;
-using System.Reflection;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 public static class vp_3DUtility
 {
@@ -232,7 +228,8 @@ public static class vp_3DUtility
 
 		GameObject pivot = null;
 
-		Material mat = new Material(Shader.Find("Transparent/Diffuse"));
+		Material mat = new Material(Shader.Find("Standard"));
+		vp_MaterialUtility.MakeMaterialTransparent(mat);
 		mat.color = color;
 
 		GameObject prim = GameObject.CreatePrimitive(primitiveType);
@@ -283,6 +280,25 @@ public static class vp_3DUtility
 	public static GameObject DebugBall(Transform parent = null)
 	{
 		return vp_3DUtility.DebugPrimitive(PrimitiveType.Sphere, Vector3.one * 0.25f, new Color(1, 0, 0, 0.5f), Vector3.zero, parent);
+	}
+
+
+	/// <summary>
+	/// sets rendering mode of 'material' to transparent
+	/// </summary>
+	[Obsolete("Please use 'vp_MaterialUtility.MakeMaterialTransparent' instead.")]
+	public static void MakeMaterialTransparent(Material material)
+	{
+
+		material.SetFloat("_Mode", 2);
+		material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+		material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+		material.SetInt("_ZWrite", 0);
+		material.DisableKeyword("_ALPHATEST_ON");
+		material.EnableKeyword("_ALPHABLEND_ON");
+		material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+		material.renderQueue = 3000;
+
 	}
 
 

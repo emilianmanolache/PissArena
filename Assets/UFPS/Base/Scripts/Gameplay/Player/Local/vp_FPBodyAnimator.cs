@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPBodyAnimator.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this script animates a human character model that needs to
 //					move around and use guns a lot! it is designed for use with
@@ -54,7 +54,7 @@ public class vp_FPBodyAnimator : vp_BodyAnimator
 	protected float LookDownForwardOffset = 0.05f;
 
 	// materials
-	public bool ShowUnarmedArms = true;							// when active, this will display the body model's arms if no weapon is wielded
+	public bool ShowUnarmedArms = true;							// when active, this will display the body model's arms if no weapon is wielded. NOTE: currently does not work if the UFPS input manager is set to 'Joystick'
 
 	public Material InvisibleMaterial = null;					// this should be set to an invisible, shadow casting material. see the included 'InvisibleShadowCaster' shader & material
 	protected Material[] m_FirstPersonMaterials;
@@ -85,21 +85,6 @@ public class vp_FPBodyAnimator : vp_BodyAnimator
 		}
 	}
 
-	vp_FPWeaponShooter m_CurrentShooter = null;
-	public vp_FPWeaponShooter CurrentShooter
-	{
-		get
-		{
-			if ((m_CurrentShooter == null) ||
-				((m_CurrentShooter != null) && ((!m_CurrentShooter.enabled) || (!vp_Utility.IsActive(m_CurrentShooter.gameObject)))))
-			{
-				if ((WeaponHandler != null) && (WeaponHandler.CurrentWeapon != null))
-					m_CurrentShooter = WeaponHandler.CurrentWeapon.GetComponentInChildren<vp_FPWeaponShooter>();
-			}
-			return m_CurrentShooter;
-		}
-	}
-
 	protected float DefaultCamHeight
 	{
 		get
@@ -123,7 +108,7 @@ public class vp_FPBodyAnimator : vp_BodyAnimator
 	protected override void Awake()
 	{
 
-#if UNITY_IPHONE || UNITY_ANDROID
+#if UNITY_IOS || UNITY_ANDROID
 		Debug.LogError("Error (" + this + ") This script from base UFPS is intended for desktop and not supported on mobile. Are you attempting to use a PC/Mac player prefab on IOS/Android?");
 		Component.DestroyImmediate(this);
 		return;
@@ -193,7 +178,7 @@ public class vp_FPBodyAnimator : vp_BodyAnimator
 		}
 		else
 		{
-			FPCamera.DoCameraCollision();
+			FPCamera.TryCameraCollision();
 		}
 
 		UpdateFirePosition();
@@ -238,7 +223,10 @@ public class vp_FPBodyAnimator : vp_BodyAnimator
 			if (!Player.Dead.Active && !Player.Climb.Active)		// player is alive and not climbing
 			{
 				// if we can show unarmed arms, and player is unarmed and not climbing
-				if (ShowUnarmedArms && ((Player.CurrentWeaponIndex.Get() < 1) && !Player.Climb.Active))
+				if (ShowUnarmedArms
+					&& ((Player.CurrentWeaponIndex.Get() < 1)
+					&& !Player.Climb.Active)
+					&& ((vp_Input.Instance.ControlType != 1))) // 'unarmed arms' don't currently animate well using joystick at low speeds
 				{
 					if (m_FirstPersonWithArmsMaterials != null)
 						Renderer.materials = m_FirstPersonWithArmsMaterials;	// only head is invisible
@@ -362,7 +350,7 @@ public class vp_FPBodyAnimator : vp_BodyAnimator
 	protected virtual void UpdateCameraCollision()
 	{
 
-		FPCamera.DoCameraCollision();
+		FPCamera.TryCameraCollision();
 
 		if (FPCamera.CollisionVector != Vector3.zero)
 			Transform.position += FPCamera.CollisionVector;
@@ -414,13 +402,13 @@ public class vp_FPBodyAnimator : vp_BodyAnimator
 	protected void UpdateFirePosition()
 	{
 
-		if (CurrentShooter == null)
+		if (WeaponHandler.CurrentShooter == null)
 			return;
 
-		if (CurrentShooter.ProjectileSpawnPoint == null)
+		if (WeaponHandler.CurrentShooter.ProjectileSpawnPoint == null)
 			return;
 
-		CurrentShooter.FirePosition = CurrentShooter.ProjectileSpawnPoint.transform.position;
+		WeaponHandler.CurrentShooter.FirePosition = WeaponHandler.CurrentShooter.ProjectileSpawnPoint.transform.position;
 
 	}
 
@@ -482,7 +470,13 @@ public class vp_FPBodyAnimator : vp_BodyAnimator
 	/// </summary>
 	protected override bool GetIsMoving()
 	{
-		return (Vector3.Scale(Player.MotorThrottle.Get(), (Vector3.right + Vector3.forward))).magnitude > 0.01f;
+
+		return (Vector3.Scale(Player.MotorThrottle.Get(), (Vector3.right + Vector3.forward))).magnitude >
+			((vp_Input.Instance.ControlType == 0) ?	// use different sensitivity depending on input hardware
+			0.01f	// keyboard (digital)
+			:
+			0.0f);	// joystick (analog)
+
 	}
 
 	

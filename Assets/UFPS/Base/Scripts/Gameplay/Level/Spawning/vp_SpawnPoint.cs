@@ -1,21 +1,26 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_SpawnPoint.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	spawnpoint logic and gizmo rendering
 //
 /////////////////////////////////////////////////////////////////////////////////
 
 
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+#if UNITY_5_4_OR_NEWER
+using UnityEngine.SceneManagement;
+#endif
 
 [System.Serializable]
 public class vp_SpawnPoint : MonoBehaviour
@@ -44,10 +49,36 @@ public class vp_SpawnPoint : MonoBehaviour
 
 
 	/// <summary>
+	/// 
+	/// </summary>
+	private void OnEnable()
+	{
+
+#if UNITY_5_4_OR_NEWER
+		SceneManager.sceneLoaded += OnLevelLoad;
+#endif
+
+	}
+
+
+	/// <summary>
+	/// 
+	/// </summary>
+	private void OnDisable()
+	{
+
+#if UNITY_5_4_OR_NEWER
+		SceneManager.sceneLoaded -= OnLevelLoad;
+#endif
+
+	}
+
+
+	/// <summary>
 	/// picks a random spawnpoint and returns a placement that is snapped
 	/// to the ground and adjusted not to intersect other physics blockers.
-	/// if 'physicsCheckRadius' is zero, no collision checking will be
-	/// performed against pre-existing objects
+	/// if 'physicsCheckRadius' is set, collision checking will be performed
+	/// against pre-existing objects
 	/// </summary>
 	public static vp_Placement GetRandomPlacement()
 	{
@@ -89,14 +120,25 @@ public class vp_SpawnPoint : MonoBehaviour
 			return null;
 		}
 
-		// found a spawnpoint! set placement position to that of
-		// the spawnpoint and apply horizontal spawnpoint radius
-		// offset (if any)
+		// found a spawnpoint! use it to create a placement
+		return spawnPoint.GetPlacement(physicsCheckRadius);
+
+	}
+
+
+	/// <summary>
+	/// returns a placement confined to this spawnpoint's settings
+	/// if 'physicsCheckRadius' is set collision checking will be
+	/// performed against pre-existing objects
+	/// </summary>
+	public virtual vp_Placement GetPlacement(float physicsCheckRadius = 0.0f)
+	{
+
 		vp_Placement p = new vp_Placement();
-		p.Position = spawnPoint.transform.position;
-		if(spawnPoint.Radius > 0.0f)
+		p.Position = transform.position;
+		if(Radius > 0.0f)
 		{
-			Vector3 newPos = (Random.insideUnitSphere * spawnPoint.Radius);
+			Vector3 newPos = (Random.insideUnitSphere * Radius);
 			p.Position.x += newPos.x;
 			p.Position.z += newPos.z;
 		}
@@ -106,15 +148,15 @@ public class vp_SpawnPoint : MonoBehaviour
 		{
 			if (!vp_Placement.AdjustPosition(p, physicsCheckRadius))
 				return null;
-			vp_Placement.SnapToGround(p, physicsCheckRadius, spawnPoint.GroundSnapThreshold);
+			vp_Placement.SnapToGround(p, physicsCheckRadius, GroundSnapThreshold);
 		}
 
 		// if spawnpoint is set to use random rotation - create one.
 		// otherwise use the rotation of the spawnpoint
-		if(spawnPoint.RandomDirection)
+		if(RandomDirection)
 			p.Rotation = Quaternion.Euler(Vector3.up * Random.Range(0.0f, 360.0f));
 		else
-			p.Rotation = spawnPoint.transform.rotation;
+			p.Rotation = transform.rotation;
 	
 		return p;
 
@@ -165,7 +207,11 @@ public class vp_SpawnPoint : MonoBehaviour
 	/// (the list will be automatically recreated and repopulated the next
 	/// time the 'SpawnPoints' property is read)
 	/// </summary>
+#if UNITY_5_4_OR_NEWER
+	protected virtual void OnLevelLoad(Scene scene, LoadSceneMode mode)
+#else
 	protected virtual void OnLevelWasLoaded()
+#endif
 	{
 		m_SpawnPoints = null;
 	}

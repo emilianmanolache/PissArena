@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FileDialog.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a classic file dialog which identifies filenames to load and
 //					save files. for use in the unity editor.
@@ -141,34 +141,34 @@ public class vp_FileDialog : EditorWindow
 			InitGUIStyles();
 
 		// --- file area ---
-		GUILayout.BeginArea(new Rect(20, 20, Screen.width - 40, Screen.height - 40));
+		GUILayout.BeginArea(new Rect(20, 20, position.width - 40, position.height - 40));
 
 		// --- path field ---
 		if (Path == Application.dataPath)
 			GUI.enabled = false;
 		Vector2 pathPixelSize = m_PathFieldLeftAlignStyle.CalcSize(new GUIContent(Path));
-		GUIStyle pathFieldStyle = (pathPixelSize.x > Screen.width - 66) ?
+		GUIStyle pathFieldStyle = (pathPixelSize.x > position.width - 66) ?
 									m_PathFieldRightAlignStyle : m_PathFieldLeftAlignStyle;
-		GUI.TextField(new Rect(0, 0, Screen.width - 66, 20), Path, pathFieldStyle);
+		GUI.TextField(new Rect(0, 0, position.width - 66, 20), Path, pathFieldStyle);
 
 		// --- up button ---
-		if (GUI.Button(new Rect(Screen.width - 62, 0, 22, 20), "^", m_UpButtonFileStyle))
+		if (GUI.Button(new Rect(position.width - 62, 0, 22, 20), "^", m_UpButtonFileStyle))
 			GoUpOneDir();
 		GUI.enabled = true;
 
 		// --- file box ---
-		float height = m_Mode == Mode.Open ? Screen.height - 106 : Screen.height - 130;
-		FileBox(0, 24, Screen.width - 20, height);
+		float height = m_Mode == Mode.Open ? position.height - 106 : position.height - 130;
+		FileBox(0, 24, position.width - 20, height);
 
 		GUILayout.EndArea();
 
 		// --- action buttons ---
 
 		Vector2 pos = m_Mode == Mode.Open ?
-			new Vector2(20, Screen.height - 58) : new Vector2(20, Screen.height - 82);
-		GUILayout.BeginArea(new Rect(pos.x, pos.y, Screen.width - 40, Screen.height - 40));
+			new Vector2(20, position.height - 58) : new Vector2(20, position.height - 82);
+		GUILayout.BeginArea(new Rect(pos.x, pos.y, position.width - 40, position.height - 40));
 		GUILayout.BeginHorizontal();
-		GUILayout.Space(Screen.width - 120);
+		GUILayout.Space(position.width - 120);
 
 		// --- filename text field ---
 
@@ -177,9 +177,9 @@ public class vp_FileDialog : EditorWindow
 			m_FilenameDirty = false;
 			string f = Filename;
 			if(m_SelectedItemType == SelectedItemType.Dir)
-				GUI.TextField(new Rect(0, 0, Screen.width - 124, 20), "");
+				GUI.TextField(new Rect(0, 0, position.width - 124, 20), "");
 			else
-				Filename = GUI.TextField(new Rect(0, 0, Screen.width - 124, 20), Filename);
+				Filename = GUI.TextField(new Rect(0, 0, position.width - 124, 20), Filename);
 			if (Filename != f)
 			{
 				m_SelectedItem = -1;
@@ -200,7 +200,7 @@ public class vp_FileDialog : EditorWindow
 
 		// the layout depends on whether this is an Open or a Save Dialog
 		pos = m_Mode == Mode.Open ?
-			new Vector2(Screen.width - 204, 0) : new Vector2(Screen.width - 120, 0);
+			new Vector2(position.width - 204, 0) : new Vector2(position.width - 120, 0);
 		if (GUI.Button(new Rect(pos.x, pos.y, 80, 20), executeButtonName))
 		{
 			if (m_Mode == Mode.Open)
@@ -216,7 +216,7 @@ public class vp_FileDialog : EditorWindow
 
 		// --- cancel button ---
 		pos = m_Mode == Mode.Open ?
-			new Vector2(Screen.width - 120, 0) : new Vector2(Screen.width - 120, 24);
+			new Vector2(position.width - 120, 0) : new Vector2(position.width - 120, 24);
 		if (GUI.Button(new Rect(pos.x, pos.y, 80, 20), "Cancel"))
 			Cancel();
 

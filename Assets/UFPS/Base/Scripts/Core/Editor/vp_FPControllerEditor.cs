@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPControllerEditor.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	custom inspector for the vp_FPController class
 //
@@ -177,6 +177,7 @@ public class vp_FPControllerEditor : Editor
 		{
 
 			m_Component.PhysicsForceDamping = EditorGUILayout.Slider("Force Damping", m_Component.PhysicsForceDamping, 0, 1);
+			m_Component.PhysicsPushMode = (vp_Controller.PushForceMode)EditorGUILayout.EnumPopup("Push Mode", (vp_Controller.PushForceMode)m_Component.PhysicsPushMode);
 			m_Component.PhysicsPushForce = EditorGUILayout.Slider("Push Force", m_Component.PhysicsPushForce, 0, 100);
 			m_Component.PhysicsGravityModifier = EditorGUILayout.Slider("Gravity Modifier", m_Component.PhysicsGravityModifier, 0, 1);
 			m_Component.PhysicsSlopeSlideLimit = EditorGUILayout.Slider("Slope Slide Limit", m_Component.PhysicsSlopeSlideLimit, 0, 90);

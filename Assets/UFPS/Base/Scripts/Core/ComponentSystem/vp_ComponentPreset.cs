@@ -1,25 +1,29 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_ComponentPreset.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	loads and saves component field values to text scripts.
 //					NOTE: assets (such as 3d objects and sounds) can not be
-//					loaded or saved via text presets (since the  project
+//					loaded or saved via text presets (since the project
 //					AssetDatabase is not accessible in a build).
 //					don't rely on presets for content - always make sure the
 //					Inspector slots are set.
 //
 /////////////////////////////////////////////////////////////////////////////////
 
+// for Anti-Cheat Toolkit support (see the manual for more info)
+#if ANTICHEAT
+using CodeStage.AntiCheat.ObscuredTypes;
+#endif
+
 using UnityEngine;
 using System;
 using System.Reflection;
 using System.IO;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 
 public sealed class vp_ComponentPreset
@@ -40,6 +44,7 @@ public sealed class vp_ComponentPreset
 	private Type m_ComponentType = null;				// the type of the monobehaviour being loaded or saved
 	public Type ComponentType { get { return m_ComponentType; } set { m_ComponentType = value; } }
 	private List<Field> m_Fields = new List<Field>();	// a list of all the component's parameters and their data
+	private static Dictionary<Type, List<FieldInfo>> m_FieldInfosByType = new Dictionary<Type, List<FieldInfo>>();	// field info cache by type
 
 	// this class holds information about one parameter of the
 	// current component: its type and its current data
@@ -61,7 +66,7 @@ public sealed class vp_ComponentPreset
 	public static string Save(Component component, string fullPath)
 	{
 		vp_ComponentPreset preset = new vp_ComponentPreset();
-		preset.InitFromComponent(component);
+		preset.InitFromComponent(component as vp_Component);
 		return Save(preset, fullPath);
 	}
 
@@ -132,41 +137,76 @@ public sealed class vp_ComponentPreset
 			value = "";
 			FieldInfo fi = FieldInfo.GetFieldFromHandle(f.FieldHandle);
 
+			if (fi.FieldType == typeof(float))
+				value = String.Format("{0:0.#######}", ((float)f.Args));
 
-				if (fi.FieldType == typeof(float))
-					value = String.Format("{0:0.#######}", ((float)f.Args));
-				else if (fi.FieldType == typeof(Vector4))
-				{
-					Vector4 val = ((Vector4)f.Args);
-					value = String.Format("{0:0.#######}", val.x) + " " +
-							String.Format("{0:0.#######}", val.y) + " " +
-							String.Format("{0:0.#######}", val.z) + " " +
-							String.Format("{0:0.#######}", val.w);
-				}
-				else if (fi.FieldType == typeof(Vector3))
-				{
-					Vector3 val = ((Vector3)f.Args);
-					value = String.Format("{0:0.#######}", val.x) + " " +
-							String.Format("{0:0.#######}", val.y) + " " +
-							String.Format("{0:0.#######}", val.z);
-				}
-				else if (fi.FieldType == typeof(Vector2))
-				{
-					Vector2 val = ((Vector2)f.Args);
-					value = String.Format("{0:0.#######}", val.x) + " " +
-							String.Format("{0:0.#######}", val.y);
-				}
-				else if (fi.FieldType == typeof(int))
-					value = ((int)f.Args).ToString();
-				else if (fi.FieldType == typeof(bool))
-					value = ((bool)f.Args).ToString();
-				else if (fi.FieldType == typeof(string))
-					value = ((string)f.Args);
-				else
-				{
-					prefix = "//";
-					value = "<NOTE: Type '" + fi.FieldType.Name.ToString() + "' can't be saved to preset.>";
-				}
+			else if (fi.FieldType == typeof(Vector4))
+			{
+				Vector4 val = ((Vector4)f.Args);
+				value = String.Format("{0:0.#######}", val.x) + " " +
+						String.Format("{0:0.#######}", val.y) + " " +
+						String.Format("{0:0.#######}", val.z) + " " +
+						String.Format("{0:0.#######}", val.w);
+			}
+			else if (fi.FieldType == typeof(Vector3))
+			{
+				Vector3 val = ((Vector3)f.Args);
+				value = String.Format("{0:0.#######}", val.x) + " " +
+						String.Format("{0:0.#######}", val.y) + " " +
+						String.Format("{0:0.#######}", val.z);
+			}
+			else if (fi.FieldType == typeof(Vector2))
+			{
+				Vector2 val = ((Vector2)f.Args);
+				value = String.Format("{0:0.#######}", val.x) + " " +
+						String.Format("{0:0.#######}", val.y);
+			}
+			else if (fi.FieldType == typeof(int))
+				value = ((int)f.Args).ToString();
+			else if (fi.FieldType == typeof(bool))
+				value = ((bool)f.Args).ToString();
+			else if (fi.FieldType == typeof(string))
+				value = ((string)f.Args);
+#if ANTICHEAT
+			else if (fi.FieldType == typeof(ObscuredFloat))
+			{
+				ObscuredFloat val = ((float)f.Args);
+				value = String.Format("{0:0.#######}", val);
+			}
+			else if (fi.FieldType == typeof(ObscuredVector3))
+			{
+				ObscuredVector3 val = ((ObscuredVector3)f.Args);
+				value = String.Format("{0:0.#######}", val.x) + " " +
+						String.Format("{0:0.#######}", val.y) + " " +
+						String.Format("{0:0.#######}", val.z);
+			}
+			else if (fi.FieldType == typeof(ObscuredVector2))
+			{
+				ObscuredVector2 val = ((ObscuredVector2)f.Args);
+				value = String.Format("{0:0.#######}", val.x) + " " +
+						String.Format("{0:0.#######}", val.y);
+			}
+			else if (fi.FieldType == typeof(ObscuredInt))
+			{
+				ObscuredInt val = ((ObscuredInt)f.Args);
+				value = val.ToString();
+			}
+			else if (fi.FieldType == typeof(ObscuredBool))
+			{
+				ObscuredBool val = ((ObscuredBool)f.Args);
+				value = val.ToString();
+			}
+			else if (fi.FieldType == typeof(ObscuredString))
+			{
+				ObscuredString val = ((ObscuredString)f.Args);
+				value = val.ToString();
+			}
+#endif
+			else
+			{
+				prefix = "//";
+				value = "<NOTE: Type '" + fi.FieldType.Name.ToString() + "' can't be saved to preset.>";
+			}
 
 			// print field name and value to the text file
 			if (!string.IsNullOrEmpty(value) && fi.Name != "Persist")
@@ -193,7 +233,7 @@ public sealed class vp_ComponentPreset
 
 		// create a preset to hold the current state of the component
 		vp_ComponentPreset modifiedPreset = new vp_ComponentPreset();
-		modifiedPreset.InitFromComponent(modifiedComponent);
+		modifiedPreset.InitFromComponent(modifiedComponent as vp_Component);
 
 		// create an empty preset of the same type
 		vp_ComponentPreset result = new vp_ComponentPreset();
@@ -253,43 +293,80 @@ public sealed class vp_ComponentPreset
 	/// <summary>
 	/// copies a component's type and values into 'this' preset
 	/// </summary>
-	public void InitFromComponent(Component component)
+	public void InitFromComponent(vp_Component component)
 	{
 
-		m_ComponentType = component.GetType();
+		m_ComponentType = component.Type;
 
 		m_Fields.Clear();
 
-		foreach (FieldInfo f in m_ComponentType.GetFields())
+		List<FieldInfo> fieldInfos = GetFieldInfos(m_ComponentType);
+		for (int v = 0; v < fieldInfos.Count; v++)
 		{
-			if (f.IsPublic)
-			{
-				if (f.FieldType == typeof(float)
-				|| f.FieldType == typeof(Vector4)
-				|| f.FieldType == typeof(Vector3)
-				|| f.FieldType == typeof(Vector2)
-				|| f.FieldType == typeof(int)
-				|| f.FieldType == typeof(bool)
-				|| f.FieldType == typeof(string))
-				{
-					m_Fields.Add(new Field(f.FieldHandle, f.GetValue(component)));
-				}
-			}
+			m_Fields.Add(new Field(fieldInfos[v].FieldHandle, fieldInfos[v].GetValue(component)));
 		}
 
 	}
 
 
 	/// <summary>
+	/// caches and returns a list of fields given a type. only
+	/// public fields of supported types are included
+	/// </summary>
+	private static List<FieldInfo> GetFieldInfos(Type type)
+	{
+
+		List<FieldInfo> fields;
+
+		if(!m_FieldInfosByType.TryGetValue(type, out fields))
+		{
+
+			fields = new List<FieldInfo>(type.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance));
+
+			for(int v = fields.Count - 1; v > -1; v--)
+			{
+				if (!(
+					fields[v].FieldType == typeof(float)
+				|| fields[v].FieldType == typeof(Vector4)
+				|| fields[v].FieldType == typeof(Vector3)
+				|| fields[v].FieldType == typeof(Vector2)
+				|| fields[v].FieldType == typeof(int)
+				|| fields[v].FieldType == typeof(bool)
+				|| fields[v].FieldType == typeof(string)
+#if ANTICHEAT
+				|| fields[v].FieldType == typeof(ObscuredFloat)
+				|| fields[v].FieldType == typeof(ObscuredVector3)
+				|| fields[v].FieldType == typeof(ObscuredVector2)
+				|| fields[v].FieldType == typeof(ObscuredInt)
+				|| fields[v].FieldType == typeof(ObscuredBool)
+				|| fields[v].FieldType == typeof(ObscuredString)
+#endif
+				))
+					fields.RemoveAt(v);
+
+			}
+
+			m_FieldInfosByType.Add(type, fields);
+
+		}
+
+		return fields;
+
+	}
+	
+
+	/// <summary>
 	/// creates an empty preset in memory, copies a component's
 	/// type and values into it and returns the preset
 	/// </summary>
-	public static vp_ComponentPreset CreateFromComponent(Component component)
+	public static vp_ComponentPreset CreateFromComponent(vp_Component component)
 	{
+
+		// TODO: used?
 
 		vp_ComponentPreset preset = new vp_ComponentPreset();
 
-		preset.m_ComponentType = component.GetType();
+		preset.m_ComponentType = component.Type;
 
 		foreach (FieldInfo f in preset.m_ComponentType.GetFields())
 		{
@@ -301,7 +378,16 @@ public sealed class vp_ComponentPreset
 				|| f.FieldType == typeof(Vector2)
 				|| f.FieldType == typeof(int)
 				|| f.FieldType == typeof(bool)
-				|| f.FieldType == typeof(string))
+				|| f.FieldType == typeof(string)
+#if ANTICHEAT
+				||  f.FieldType == typeof(ObscuredFloat)
+				||  f.FieldType == typeof(ObscuredVector3)
+				||  f.FieldType == typeof(ObscuredVector2)
+				||  f.FieldType == typeof(ObscuredInt)
+				||  f.FieldType == typeof(ObscuredBool)
+				||  f.FieldType == typeof(ObscuredString)
+#endif
+				)
 				{
 					preset.m_Fields.Add(new Field(f.FieldHandle, f.GetValue(component)));
 				}
@@ -319,10 +405,9 @@ public sealed class vp_ComponentPreset
 	public int TryMakeCompatibleWithComponent(vp_Component component)
 	{
 
-		m_ComponentType = component.GetType();
+		m_ComponentType = component.Type;
 
-
-		List<FieldInfo> availableFields = new List<FieldInfo>(m_ComponentType.GetFields());
+		List<FieldInfo> availableFields = GetFieldInfos(m_ComponentType);
 
 		for (int v = m_Fields.Count - 1; v > -1; v--)
 		{
@@ -750,6 +835,9 @@ public sealed class vp_ComponentPreset
 			{ "vp_FPCamera.MouseSmoothWeight", new string [] {"vp_FPInput", "MouseLookSmoothWeight"} },
 			{ "vp_FPCamera.MouseAccelerationThreshold", new string [] {"vp_FPInput", "MouseLookAccelerationThreshold"} },
 			{ "vp_FPInput.ForceCursor", new string [] {"vp_FPInput", "MouseCursorForced"} },
+			{ "vp_FPController.m_Velocity", new string [] {"", ""} },
+			{ "vp_FPController.m_PositionOnPlatform", new string [] {"", ""} },
+			{ "vp_Controller.m_PositionOnPlatform", new string [] {"vp_Controller", "PositionOnPlatform"} },
 		};
 
 	
@@ -789,13 +877,43 @@ public sealed class vp_ComponentPreset
 
 		// component and preset both seem ok, so set the preset fields
 		// onto the component
-		foreach (Field f in preset.m_Fields)
+		for (int p = 0; p < preset.m_Fields.Count; p++)
 		{
-			foreach (FieldInfo destField in component.Fields)
+			FieldInfo destField = FieldInfo.GetFieldFromHandle(preset.m_Fields[p].FieldHandle);
+#if ANTICHEAT
+			if ((destField.FieldType == typeof(ObscuredFloat)) && (preset.m_Fields[p].Args.GetType() == typeof(float)))
 			{
-				if (destField.FieldHandle == f.FieldHandle)
-					destField.SetValue(component, f.Args);
+				ObscuredFloat o = (float)preset.m_Fields[p].Args;
+				destField.SetValue(component, o);
 			}
+			else if ((destField.FieldType == typeof(ObscuredVector3)) && (preset.m_Fields[p].Args.GetType() == typeof(Vector3)))
+			{
+				ObscuredVector3 o = (Vector3)preset.m_Fields[p].Args;
+				destField.SetValue(component, o);
+			}
+			else if ((destField.FieldType == typeof(ObscuredVector2)) && (preset.m_Fields[p].Args.GetType() == typeof(Vector2)))
+			{
+				ObscuredVector2 o = (Vector2)preset.m_Fields[p].Args;
+				destField.SetValue(component, o);
+			}
+			else if ((destField.FieldType == typeof(ObscuredInt)) && (preset.m_Fields[p].Args.GetType() == typeof(int)))
+			{
+				ObscuredInt o = (int)preset.m_Fields[p].Args;
+				destField.SetValue(component, o);
+			}
+			else if ((destField.FieldType == typeof(ObscuredBool)) && (preset.m_Fields[p].Args.GetType() == typeof(bool)))
+			{
+				ObscuredBool o = (bool)preset.m_Fields[p].Args;
+				destField.SetValue(component, o);
+			}
+			else if ((destField.FieldType == typeof(ObscuredString)) && (preset.m_Fields[p].Args.GetType() == typeof(string)))
+			{
+				ObscuredString o = (string)preset.m_Fields[p].Args;
+				destField.SetValue(component, o);
+			}
+			else
+#endif
+				destField.SetValue(component, preset.m_Fields[p].Args);
 		}
 
 		return true;
@@ -882,7 +1000,20 @@ public sealed class vp_ComponentPreset
 			return ArgsToBool(tokens);
 		else if (field.FieldType == typeof(string))
 			return ArgsToString(tokens);
-
+#if ANTICHEAT
+		else if (field.FieldType == typeof(ObscuredFloat))
+			return ArgsToFloat(tokens);
+		else if (field.FieldType == typeof(ObscuredVector3))
+			return ArgsToVector3(tokens);
+		else if (field.FieldType == typeof(ObscuredVector2))
+			return ArgsToVector2(tokens);
+		else if (field.FieldType == typeof(ObscuredInt))
+			return ArgsToInt(tokens);
+		else if (field.FieldType == typeof(ObscuredBool))
+			return ArgsToBool(tokens);
+		else if (field.FieldType == typeof(ObscuredString))
+			return ArgsToString(tokens);
+#endif
 		return null;
 
 	}

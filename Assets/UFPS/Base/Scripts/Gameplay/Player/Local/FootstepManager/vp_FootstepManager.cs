@@ -1,13 +1,16 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FootstepManager.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a class that works with vp_FPPlayerController and vp_FPCamera
 //					to play footstep sounds based on the textures that controller
 //					is currently over.
+//
+//					NOTE: this class is obsolete! please use the new vp_PlayerFootFXHandler
+//					component along with a scene vp_SurfaceManager instead.
 //
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -76,16 +79,23 @@ public class vp_FootstepManager : MonoBehaviour
 	/// </summary>
 	protected virtual void Awake()
 	{
-		
+
+		Debug.LogWarning("Warning (" + this + ") This component is obsolete! please use the new vp_PlayerFootFXHandler component along with a scene vp_SurfaceManager instead.");
+
 		m_Player = transform.root.GetComponentInChildren<vp_FPPlayerEventHandler>();
 		m_Camera = transform.root.GetComponentInChildren<vp_FPCamera>();
 		m_Controller = transform.root.GetComponentInChildren<vp_FPController>();
-		m_Audio = gameObject.AddComponent<AudioSource>(); // add a new audio source for this class to use
-		
+		m_Audio = transform.root.GetComponentInChildren<AudioSource>();
+		if (m_Audio == null)
+			m_Audio = gameObject.AddComponent<AudioSource>();
+	
 	}
-	
-	
-	public virtual void SetDirty( bool dirty )
+
+
+	/// <summary>
+	/// 
+	/// </summary>
+	public virtual void SetDirty(bool dirty)
 	{
 		mIsDirty = dirty;
 	}
@@ -145,13 +155,13 @@ public class vp_FootstepManager : MonoBehaviour
 		if(!m_Controller.Grounded)
 			return;
 		
-		// return if there no texture or surface type is found
-		if(m_Player.GroundTexture.Get() == null && m_Player.SurfaceType.Get() == null)
+		// return if no texture and no surface identifier is found
+		if (GetGroundTexture() == null && GetSurfaceIdentifier() == null)
 			return;
 		
-		if(m_Player.SurfaceType.Get() != null)
+		if (GetSurfaceIdentifier() != null)
 		{
-			PlaySound( SurfaceTypes[ m_Player.SurfaceType.Get().SurfaceID ] );
+			PlaySound(SurfaceTypes[GetSurfaceIdentifier().SurfaceID]);
 			return;
 		}
 		
@@ -162,7 +172,7 @@ public class vp_FootstepManager : MonoBehaviour
 			foreach(Texture tex in st.Textures)
 			{
 				// if the texture is the same as the ground texture...
-				if(tex == m_Player.GroundTexture.Get())
+				if (tex == GetGroundTexture())
 				{
 					// play random surface sound
 					PlaySound( st );
@@ -173,6 +183,20 @@ public class vp_FootstepManager : MonoBehaviour
 		
 	}
 	
+
+	/// <summary>
+	/// 
+	/// </summary>
+	vp_SurfaceIdentifier GetSurfaceIdentifier()
+	{
+
+		if(m_Controller.GroundTransform == null)
+			return null;
+
+		return m_Controller.GroundTransform.GetComponent<vp_SurfaceIdentifier>();
+
+	}
+
 	
 	/// <summary>
 	/// Plays a random sound from the surface the
@@ -180,14 +204,22 @@ public class vp_FootstepManager : MonoBehaviour
 	/// </summary>
 	public virtual void PlaySound( vp_SurfaceTypes st )
 	{
-		
+
+		// if the audiosource is null, return
+		if (m_Audio == null)
+			return;
+
+		// if the audiosource is not enabled, return
+		if (!m_Audio.enabled)
+			return;
+
 		// return if there are no sounds
 		if(st.Sounds == null || st.Sounds.Count == 0)
 			return;
-		
+
 		reroll:
 		m_SoundToPlay = st.Sounds[Random.Range(0,st.Sounds.Count)]; // get a random sound
-		
+
 		// if the sound is null, return
 		if(m_SoundToPlay == null)
 			return;
@@ -199,6 +231,7 @@ public class vp_FootstepManager : MonoBehaviour
 		// set a random pitch
 		m_Audio.pitch = Random.Range(st.RandomPitch.x, st.RandomPitch.y) * Time.timeScale;
 		m_Audio.clip = m_SoundToPlay;
+
 		m_Audio.Play(); // play the sound
 		m_LastPlayedSound = m_SoundToPlay; // cache this sound
 		
@@ -245,5 +278,49 @@ public class vp_FootstepManager : MonoBehaviour
         return maxIndex;
  
     }
-	
+
+
+	/// <summary>
+	/// returns the current mainTexture under the controller.
+	/// gets the texture from terrain if over terrain, else it
+	/// looks in the transform of the current object the controller
+	/// is over
+	/// </summary>
+	public virtual Texture GetGroundTexture()
+	{
+
+		if (m_Controller.GroundTransform == null)
+			return null;
+
+		Terrain terrain = m_Controller.GroundTransform.GetComponent<Terrain>();
+		Renderer renderer = m_Controller.GroundTransform.GetComponent<Renderer>();
+
+		// return if no renderer and no terrain under the controller
+		if (renderer == null && (terrain == null))
+			return null;
+
+		int terrainTextureID = -1;
+
+		// check to see if a main texture can be retrieved from the terrain
+		if (terrain != null)
+		{
+			terrainTextureID = vp_FootstepManager.GetMainTerrainTexture(transform.position, terrain);
+			if (terrainTextureID > terrain.terrainData.splatPrototypes.Length - 1)
+				return null;
+		}
+		else
+		{
+			// terrain is null, try to return object texture
+			if ((renderer != null) && (renderer.sharedMaterial != null))
+				return renderer.sharedMaterial.mainTexture;
+			else
+				return null;	// fail
+		}
+
+		// return terrain texture
+		return terrain.terrainData.splatPrototypes[terrainTextureID].texture;
+
+	}
+
+
 }

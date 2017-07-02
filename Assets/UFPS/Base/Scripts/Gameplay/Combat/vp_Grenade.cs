@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Grenade.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this script will apply a rigidbody impulse to its gameobject
 //					in the moment it awakes (spawns), and kill it in 'LifeTime'
@@ -46,35 +46,25 @@ public class vp_Grenade : MonoBehaviour
 	/// <summary>
 	/// 
 	/// </summary>
-	void Start()
-	{
-
-		// destroy the grenade object in 'lifetime' seconds. this will only work
-		// if the object has a vp_DamageHandler-derived component on it
-		vp_Timer.In(LifeTime, delegate()
-		{
-			transform.SendMessage("DieBySources", new Transform[]{m_Source, m_OriginalSource}, SendMessageOptions.DontRequireReceiver);
-		});
-
-	}
-
-
-	/// <summary>
-	/// 
-	/// </summary>
 	protected virtual void OnEnable()
 	{
 
 		if (m_Rigidbody == null)
 			return;
 
+		// destroy the grenade object in 'lifetime' seconds. this will only work
+		// if the object has a vp_DamageHandler-derived component on it
+		vp_Timer.In(LifeTime, ()=>
+		{
+			transform.SendMessage("DieBySources", new Transform[] { m_Source, m_OriginalSource }, SendMessageOptions.DontRequireReceiver);
+		});
+
 		// apply force on spawn
 		if (RigidbodyForce != 0.0f)
 			m_Rigidbody.AddForce((transform.forward * RigidbodyForce), ForceMode.Impulse); 
 		if (RigidbodySpin != 0.0f)
 			m_Rigidbody.AddTorque(Random.rotation.eulerAngles * RigidbodySpin);
-
-
+		
 	}
 
 
@@ -83,7 +73,7 @@ public class vp_Grenade : MonoBehaviour
 	/// this is called by the 'vp_Shooter' script and is picked up by
 	/// various other scripts, especially in UFPS multiplayer add-on.
 	/// NOTE: this method must be called between spawning, and before
-	/// 'Start' is called.
+	/// 'OnEnable' is called.
 	/// </summary>
 	public void SetSource(Transform source)
 	{

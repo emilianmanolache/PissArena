@@ -1,14 +1,34 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Event.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	base class for events. contains all common fields and methods,
 //					along with utilities for advanced generic delegate handling
 //
 /////////////////////////////////////////////////////////////////////////////////
+
+// AOT platform / JIT compile error prevention
+#if (UNITY_IOS || UNITY_WII || UNITY_PS3 || UNITY_PS4 || UNITY_XBOXONE)
+#define AOT
+// certain static & generic 'Empty' methods used by the event system will
+// provoke 'JIT compile' errors on platforms that use AOT (Ahead of Time)
+// compilation only. the purpose of this preprocessor directive is to strip
+// out the affected code on AOT platforms. identical directives exist in
+// vp_Message.cs and vp_Value.cs.
+
+// the purpose of the "Empty" method is 1) to prevent nullref crashes
+// should a delegate be executed without callbacks in it, 2) to provide
+// a suitable label in the event handler debug output showing that a
+// delegate is empty.
+
+// PLEASE NOTE: the affected platforms will crash if you ever execute
+// a vp_Event that has no callback ("void OnMessage_Something()" etc)
+// registered to it. you may have to create placeholder methods for such
+// events in code. see the manual for more info about the event system.
+#endif
 
 using System;
 using System.Reflection;
@@ -20,6 +40,9 @@ public abstract class vp_Event
 
 	protected string m_Name = null;
 	public string EventName { get { return m_Name; } }
+
+	protected Type m_Type = null;
+	public Type Type { get { return m_Type; } }
 
 	protected Type m_ArgumentType = null;
 	public Type ArgumentType { get { return m_ArgumentType; } }
@@ -45,6 +68,7 @@ public abstract class vp_Event
 	public vp_Event(string name = "")
 	{
 
+		m_Type = GetType();
 		m_ArgumentType = GetArgumentType;
 		m_ReturnType = GetGenericReturnType;
 		m_Name = name;
@@ -183,17 +207,7 @@ public abstract class vp_Event
 			if (m == null)
 				continue;
 
-#if (UNITY_IPHONE)
-
-			// NOTE: The purpose of the "Empty" method is 1) to prevent null
-			// ref crashes should a delegate be executed without callbacks in
-			// it, 2) to provide a suitable label in the event handler debug
-			// output showing that a delegate is empty. However: the static,
-			// generic "Empty" methods will not compile on IOS (failing with
-			// "JIT compile" errors). These "UNITY_IPHONE" defines are to
-			// retain the event system as-is for regular platforms, but
-			// strip out IOS sensitive code at compile time.
-
+#if (AOT)
 			if (m.Name == "Empty")
 				continue;
 #endif
@@ -243,10 +257,10 @@ public abstract class vp_Event
 	{
 		get
 		{
-			if (!this.GetType().IsGenericType)
+			if (!Type.IsGenericType)
 				return typeof(void);
 
-			return this.GetType().GetGenericArguments()[0];
+			return Type.GetGenericArguments()[0];
 		}
 	}
 
@@ -258,13 +272,13 @@ public abstract class vp_Event
 	{
 		get
 		{
-			if (!this.GetType().IsGenericType)
+			if (!Type.IsGenericType)
 				return typeof(void);
 
-			if (this.GetType().GetGenericArguments().Length != 2)
+			if (Type.GetGenericArguments().Length != 2)
 				return typeof(void);
 
-			return this.GetType().GetGenericArguments()[1];
+			return Type.GetGenericArguments()[1];
 		}
 	}
 
@@ -276,7 +290,7 @@ public abstract class vp_Event
 	{
 
 		// non-generic events never have a parameter
-		if (!this.GetType().IsGenericType)
+		if (!Type.IsGenericType)
 			return typeof(void);
 
 		// return if 'index' does not exist
@@ -305,7 +319,7 @@ public abstract class vp_Event
 			return null;
 		}
 
-		if (this.GetType().GetGenericArguments().Length > 1)
+		if (Type.GetGenericArguments().Length > 1)
 			return GetGenericReturnType;
 
 		Type t = m_DelegateTypes[index].GetMethod("Invoke").ReturnType;

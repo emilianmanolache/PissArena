@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPInteractManager.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	This allows interaction with vp_Interactable components in
 //					the world via input. Check for the method InputInteract()
@@ -228,13 +228,15 @@ public class vp_FPInteractManager : MonoBehaviour
 	/// </summary>
 	protected virtual bool FindInteractable( out vp_Interactable interactable )
 	{
-		
+
 		interactable = null;
 		
 		RaycastHit hit;
-		if(Physics.Raycast(m_Camera.Transform.position, m_Camera.Transform.forward, out hit, MaxInteractDistance, vp_Layer.Mask.BulletBlockers))
+		LayerMask layerMask = ~((1 << vp_Layer.LocalPlayer) | (1 << vp_Layer.Debris) |
+								(1 << vp_Layer.IgnoreRaycast) | (1 << vp_Layer.IgnoreBullets) | (1 << vp_Layer.Trigger) | (1 << vp_Layer.Water));
+		if (Physics.Raycast(m_Camera.Transform.position, m_Camera.Transform.forward, out hit, MaxInteractDistance, layerMask))
 		{
-			// test to see if we hit a collider and if that collider contains a vp_Interactable instance
+						  // test to see if we hit a collider and if that collider contains a vp_Interactable instance
 			if(!m_Interactables.TryGetValue(hit.collider, out interactable))
 				m_Interactables.Add(hit.collider, interactable = hit.collider.GetComponent<vp_Interactable>());
 			

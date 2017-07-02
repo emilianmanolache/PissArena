@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPWeapon.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	animates a weapon transform using springs, bob and perlin noise,
 //					in response to user input
@@ -20,6 +20,7 @@ public class vp_FPWeapon : vp_Weapon
 
 	// 1st person weapon prefab
 	public GameObject WeaponPrefab = null;		// NOTE: this is always a PREFAB from the PROJECT VIEW and only used in 1st person
+	protected Animation m_WeaponModelAnimation = null;
 
 	// character controller of the parent gameobject
 	protected CharacterController Controller = null;
@@ -48,7 +49,7 @@ public class vp_FPWeapon : vp_Weapon
 	protected vp_Spring m_PositionSpring = null;		// spring for player motion (shake, falling impact, sway, bob etc.)
 	protected vp_Spring m_PositionPivotSpring = null;
 	protected vp_Spring m_RotationPivotSpring = null;
-	protected GameObject m_WeaponCamera = null;
+	protected Camera m_WeaponCamera = null;
 	protected GameObject m_WeaponGroup = null;
 	protected GameObject m_Pivot = null;
 	protected Transform m_WeaponGroupTransform = null;
@@ -144,11 +145,12 @@ public class vp_FPWeapon : vp_Weapon
 	public Vector3 RotationExitOffset = new Vector3(40.0f, 0.0f, 0.0f);
 
 	// misc
-	public GameObject WeaponCamera { get { return m_WeaponCamera; } }
+	public GameObject WeaponCamera { get { return m_WeaponCamera.gameObject; } }
 	public GameObject WeaponModel { get { return m_WeaponModel; } }
 	public Vector3 DefaultPosition { get { return (Vector3)DefaultState.Preset.GetFieldValue("PositionOffset"); } }
 	public Vector3 DefaultRotation { get { return (Vector3)DefaultState.Preset.GetFieldValue("RotationOffset"); } }
-	public bool DrawRetractionDebugLine { get { return m_DrawRetractionDebugLine; } set { m_DrawRetractionDebugLine = value; } }	// for editor use
+	public bool DrawRetractionDebugLine { get { return m_DrawRetractionDebugLine; } set { m_DrawRetractionDebugLine = value; } }    // for editor use
+	public bool DoSpringsInLateUpdate = false;			// intended for VR
 	protected Vector2 m_LookInput = Vector2.zero;		// input look distance moved since last frame
 	protected const float LOOKDOWNSPEED = 2;
 
@@ -197,27 +199,24 @@ public class vp_FPWeapon : vp_Weapon
 		// always start with zero angle
 		Transform.eulerAngles = Vector3.zero;
 
-		// hook up the weapon camera - find a regular Unity Camera
-		// component existing in a child gameobject to our parent
-		// gameobject. if we don't find a camera, this weapon won't
-		// render.
+		// hook up the weapon camera - find a regular Unity Camera component
+		// existing in a child gameobject to our parent gameobject
 		Camera weaponCam = null;
 		foreach (Transform t in Transform.parent)
 		{
-			weaponCam = (Camera)t.GetComponent(typeof(Camera));
+			weaponCam = t.GetComponent<Camera>();
 			if (weaponCam != null)
 			{
-				m_WeaponCamera = weaponCam.gameObject;
+				m_WeaponCamera = weaponCam;
 				break;
 			}
 		}
 
 		// disallow colliders on the weapon or we may get issues with
 		// player collision
-		if (GetComponent<Collider>() != null)
-			GetComponent<Collider>().enabled = false;
-
-
+		if (Collider != null)
+			Collider.enabled = false;
+		
 	}
 
 
@@ -264,8 +263,9 @@ public class vp_FPWeapon : vp_Weapon
 		m_Pivot.transform.localPosition = Vector3.zero;
 		m_Pivot.layer = vp_Layer.Weapon;
 		vp_Utility.Activate(m_Pivot.gameObject, false);
-		Material material = new Material(Shader.Find("Transparent/Diffuse"));
-		material.color = new Color(0, 0, 1, 0.5f);
+		Material material = new Material(Shader.Find("Standard"));
+		vp_MaterialUtility.MakeMaterialTransparent(material);
+		material.color = new Color(0.15f, 0.15f, 1, 0.5f);
 		m_Pivot.GetComponent<Renderer>().material = material;
 
 		// setup the weapon springs
@@ -310,6 +310,7 @@ public class vp_FPWeapon : vp_Weapon
 			m_WeaponModel.transform.localPosition = Vector3.zero;
 			m_WeaponModel.transform.localScale = new Vector3(1, 1, RenderingZScale);
 			m_WeaponModel.transform.localEulerAngles = Vector3.zero;
+			m_WeaponModelAnimation = m_WeaponModel.GetComponent<Animation>();
 
 			// set layer here too in case the method is called at runtime from the editor
 			if (m_WeaponCamera != null && vp_Utility.IsActive(m_WeaponCamera.gameObject))
@@ -385,9 +386,11 @@ public class vp_FPWeapon : vp_Weapon
 	/// </summary>
 	protected override void LateUpdate()
 	{
-		// NOTE: just here to 'mute' the inherited LateUpdate
+
+		// NOTE: this method is just here to 'mute' the inherited LateUpdate
+
 	}
-	
+
 
 	/// <summary>
 	/// pushes the weapon position spring along the 'force' vector
@@ -509,7 +512,7 @@ public class vp_FPWeapon : vp_Weapon
 		float zoom = 1.0f - ((m_FinalZoomTime - Time.time) / RenderingZoomDamping);
 
 		if (m_WeaponCamera != null && vp_Utility.IsActive(m_WeaponCamera.gameObject))
-			m_WeaponCamera.GetComponent<Camera>().fieldOfView = Mathf.SmoothStep(m_WeaponCamera.gameObject.GetComponent<Camera>().fieldOfView,
+			m_WeaponCamera.fieldOfView = Mathf.SmoothStep(m_WeaponCamera.fieldOfView,
 																	RenderingFieldOfView, zoom);
 
 	}
@@ -532,7 +535,7 @@ public class vp_FPWeapon : vp_Weapon
 	{
 
 		if (m_WeaponCamera != null && vp_Utility.IsActive(m_WeaponCamera.gameObject))
-			m_WeaponCamera.GetComponent<Camera>().fieldOfView = RenderingFieldOfView;
+			m_WeaponCamera.fieldOfView = RenderingFieldOfView;
 
 	}
 
@@ -541,7 +544,7 @@ public class vp_FPWeapon : vp_Weapon
 	/// updates the procedural shaking of the weapon.
 	/// this is a purely aesthetic motion to breathe life into the first
 	/// person arm / weapon. if one wanted to expand on this, one could
-	/// alternate between higher & lower speeds and amplitudes.
+	/// alternate between higher and lower speeds and amplitudes.
 	/// </summary>
 	protected virtual void UpdateShakes()
 	{
@@ -850,8 +853,7 @@ public class vp_FPWeapon : vp_Weapon
 		// calculate local velocity
 		Vector3 localVelocity = Transform.InverseTransformDirection(m_SwayVel / 60);
 
-		// --- pitch & yaw rotational sway ---
-
+        // --- pitch & yaw rotational sway ---
 		// sway the weapon transform using input and weapon 'weight'
 		m_RotationSpring.AddForce(new Vector3(
 			(m_LookInput.y * (RotationLookSway.x * 0.025f)),
@@ -998,8 +1000,8 @@ public class vp_FPWeapon : vp_Weapon
 
 			if ((m_WeaponCamera != null) && vp_Utility.IsActive(m_WeaponCamera.gameObject))
 			{
-				m_WeaponCamera.GetComponent<Camera>().nearClipPlane = RenderingClippingPlanes.x;
-				m_WeaponCamera.GetComponent<Camera>().farClipPlane = RenderingClippingPlanes.y;
+				m_WeaponCamera.nearClipPlane = RenderingClippingPlanes.x;
+				m_WeaponCamera.farClipPlane = RenderingClippingPlanes.y;
 			}
 
 			Zoom();
@@ -1099,7 +1101,7 @@ public class vp_FPWeapon : vp_Weapon
 
 
 	/// <summary>
-	/// forces the 'exit offset' position & angle immediately
+	/// forces the 'exit offset' position and angle immediately
 	/// </summary>
 	public virtual void SnapToExit()
 	{
@@ -1214,12 +1216,12 @@ public class vp_FPWeapon : vp_Weapon
 		// play animation
 		if ((isWielding ? AnimationWield : AnimationUnWield) != null)
 		{
-			if (vp_Utility.IsActive(gameObject))
+			if (vp_Utility.IsActive(gameObject) && (m_WeaponModelAnimation != null))
 			{
 				if(isWielding)
-					m_WeaponModel.GetComponent<Animation>().CrossFade(AnimationWield.name);
+					m_WeaponModelAnimation.CrossFade(AnimationWield.name);
 				else
-					m_WeaponModel.GetComponent<Animation>().CrossFade(AnimationUnWield.name);
+					m_WeaponModelAnimation.CrossFade(AnimationUnWield.name);
 			}
 		}
 
@@ -1241,15 +1243,18 @@ public class vp_FPWeapon : vp_Weapon
 
 		vp_Timer.In(Random.Range(AmbientInterval.x, AmbientInterval.y), delegate()
 		{
-			// need to check for active here too since weapon may have
-			// been deactivated since ambient animation was scheduled
-			if (vp_Utility.IsActive(gameObject))
+			if ((this != null) && (gameObject != null))
 			{
-				m_CurrentAmbientAnimation = Random.Range(0, AnimationAmbient.Count);
-				if (AnimationAmbient[m_CurrentAmbientAnimation] != null)
+				// need to check for active here too since weapon may have
+				// been deactivated since ambient animation was scheduled
+				if (vp_Utility.IsActive(gameObject) && (m_WeaponModelAnimation != null))
 				{
-					m_WeaponModel.GetComponent<Animation>().CrossFadeQueued(AnimationAmbient[m_CurrentAmbientAnimation].name);
-					ScheduleAmbientAnimation();
+					m_CurrentAmbientAnimation = Random.Range(0, AnimationAmbient.Count);
+					if (AnimationAmbient[m_CurrentAmbientAnimation] != null)
+					{
+						m_WeaponModelAnimation.CrossFadeQueued(AnimationAmbient[m_CurrentAmbientAnimation].name);
+						ScheduleAmbientAnimation();
+					}
 				}
 			}
 		}, m_AnimationAmbientTimer);

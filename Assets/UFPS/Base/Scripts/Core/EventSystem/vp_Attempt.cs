@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Attempt.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	event type for evaluating and executing the results of attempted
 //					user actions that may succeed or fail. supports 0-1 generic
@@ -47,11 +47,11 @@ public class vp_Attempt : vp_Event			// non-generic version for 0 arguments
 	protected override void InitFields()
 	{
 
-		m_Fields = new FieldInfo[]{	this.GetType().GetField("Try")	};
+		m_Fields = new FieldInfo[]{	Type.GetField("Try")	};
 
 		StoreInvokerFieldNames();
 
-		m_DefaultMethods = new MethodInfo[]{	this.GetType().GetMethod("AlwaysOK")};
+		m_DefaultMethods = new MethodInfo[]{	Type.GetMethod("AlwaysOK")};
 
 		m_DelegateTypes = new Type[] { typeof(vp_Attempt.Tryer) };
 		Prefixes = new Dictionary<string, int>()	{	{"OnAttempt_", 0}	};
@@ -112,16 +112,16 @@ public class vp_Attempt<V> : vp_Attempt			// generic version with 1 argument
 	protected override void InitFields()
 	{
 
-		m_Fields = new FieldInfo[]{	this.GetType().GetField("Try")};
+		m_Fields = new FieldInfo[]{	Type.GetField("Try")};
 
 		StoreInvokerFieldNames();
 
-		m_DefaultMethods = new MethodInfo[]{	GetStaticGenericMethod(this.GetType(), "AlwaysOK", m_ArgumentType, typeof(bool))};
+		m_DefaultMethods = new MethodInfo[]{	GetStaticGenericMethod(Type, "AlwaysOK", m_ArgumentType, typeof(bool))};
 
 		m_DelegateTypes = new Type[] { typeof(vp_Attempt<>.Tryer<>) };
 		Prefixes = new Dictionary<string, int>() { { "OnAttempt_", 0 } };
 
-		if (m_DefaultMethods[0] != null)
+		if ((m_DefaultMethods != null) && (m_DefaultMethods[0] != null))
 			SetFieldToLocalMethod(m_Fields[0], m_DefaultMethods[0], MakeGenericType(m_DelegateTypes[0]));
 
 	}
@@ -148,7 +148,7 @@ public class vp_Attempt<V> : vp_Attempt			// generic version with 1 argument
 	public override void Unregister(object t)
 	{
 
-		if (m_DefaultMethods[0] != null)
+		if ((m_DefaultMethods != null) && (m_DefaultMethods[0] != null))
 			SetFieldToLocalMethod(m_Fields[0], m_DefaultMethods[0], MakeGenericType(m_DelegateTypes[0]));
 
 	}

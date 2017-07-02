@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPSDemo2.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	PLEASE NOTE: this class is very specialized	for the demo
 //					walkthrough and is not meant to be used as the starting
@@ -152,7 +152,7 @@ public class vp_FPSDemo2 : MonoBehaviour
 	void DemoPhysics()
 	{
 
-		m_Demo.DrawBoxes("part iii: physics", "Ultimate FPS features a cool, tweakable MOTOR and PHYSICS simulation.\nAll motion is forwarded to the camera and weapon for some CRAZY MOVES that you won't see in an everyday FPS. Click these buttons for some quick examples ...", null, ImageRightArrow);
+		m_Demo.DrawBoxes("part iii: physics", "UFPS features a cool, tweakable MOTOR and PHYSICS simulation.\nAll motion is forwarded to the camera and weapon for some CRAZY MOVES that you won't see in an everyday FPS. Click these buttons for some quick examples ...", null, ImageRightArrow);
 		if (m_Demo.FirstFrame)
 		{
 			m_Demo.DrawCrosshair = true;
@@ -422,7 +422,7 @@ public class vp_FPSDemo2 : MonoBehaviour
 			m_OutroAngle.y + (Mathf.Cos(((Time.time - m_OutroStartTime) + 50) * 0.03f) * 20)
 			);
 
-		m_Demo.DrawBoxes("WHAT YOU GET", "• An in-depth 200 page MANUAL with many tutorials to get you started EASILY.\n• Tons of scripts, art & sound FX. • Full, well commented C# SOURCE CODE.\n• A FANTASTIC starting point (or upgrade) for any FPS project.\nBest part? It can be yours in a minute! GET IT NOW on visionpunk.com ...", ImageLeftArrow, ImageCheckmark, delegate() { m_Demo.LoadLevel(0); });
+		m_Demo.DrawBoxes("WHAT YOU GET", "• An in-depth 200 page MANUAL with many tutorials to get you started EASILY.\n• Tons of scripts, art & sound FX. • Full, well commented C# SOURCE CODE.\n• A FANTASTIC starting point (or upgrade) for any FPS project.\nBest part? It can be yours in a minute! GET IT NOW on opsive.com ...", ImageLeftArrow, ImageCheckmark, delegate() { m_Demo.LoadLevel(0); });
 		m_Demo.DrawImage(ImageAllParams);
 
 	}

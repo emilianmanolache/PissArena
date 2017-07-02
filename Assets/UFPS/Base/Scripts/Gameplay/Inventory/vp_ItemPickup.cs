@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_ItemPickup.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this component implements pick-up-able item records. it depends
 //					on a defined ItemType, which it will transmit to the vp_Inventory
@@ -83,9 +83,9 @@ public class vp_ItemPickup : MonoBehaviour
 		{
 			if (m_Audio == null)
 			{
-				if (GetComponent<AudioSource>() == null)
-					gameObject.AddComponent<AudioSource>();
 				m_Audio = GetComponent<AudioSource>();
+				if (m_Audio == null)
+					m_Audio = gameObject.AddComponent<AudioSource>();
 			}
 			return m_Audio;
 		}
@@ -99,6 +99,17 @@ public class vp_ItemPickup : MonoBehaviour
 			if (m_Collider == null)
 				m_Collider = GetComponent<Collider>();
 			return m_Collider;
+		}
+	}
+
+	protected vp_Respawner m_Respawner = null;
+	protected vp_Respawner Respawner
+	{
+		get
+		{
+			if (m_Respawner == null)
+				m_Respawner = GetComponent<vp_Respawner>();
+			return m_Respawner;
 		}
 	}
 
@@ -129,11 +140,18 @@ public class vp_ItemPickup : MonoBehaviour
 	{
 		get
 		{
-			if (m_Rigidbody == null)
+			if ((this != null) && !m_RigidbodyWasCached && (m_Rigidbody == null))
+			{
 				m_Rigidbody = GetComponent<Rigidbody>();
+				if (m_Rigidbody != null)
+					m_HaveRigidbody = true;
+				m_RigidbodyWasCached = true;
+			}
 			return m_Rigidbody;
 		}
 	}
+	bool m_HaveRigidbody = false;
+	bool m_RigidbodyWasCached = false;
 
 
 	//////////////// 'Item' section ////////////////
@@ -142,6 +160,7 @@ public class vp_ItemPickup : MonoBehaviour
 	{
 
 		public vp_ItemType Type = null;
+		public bool GiveOnContact = true;
 
 #if UNITY_EDITOR
 		[vp_HelpBox(typeof(ItemSection), UnityEditor.MessageType.None, typeof(vp_ItemPickup), null, true)]
@@ -151,6 +170,12 @@ public class vp_ItemPickup : MonoBehaviour
 	}
 	[SerializeField]
 	protected ItemSection m_Item;
+
+	public bool GiveOnContact
+	{
+		get		{		return m_Item.GiveOnContact;		}
+		set		{		m_Item.GiveOnContact = value;		}
+	}
 
 
 	//////////////// 'Recipient Tags' section ////////////////
@@ -209,6 +234,8 @@ public class vp_ItemPickup : MonoBehaviour
 
 	static Dictionary<Collider, vp_Inventory> m_ColliderInventories = new Dictionary<Collider, vp_Inventory>();
 
+	protected const float COLLIDER_DISABLE_DELAY = 0.5f;
+
 	// SNIPPET: if you have the UFPS & Photon Cloud Multiplayer Starter Kit,
 	// this code can be enabled to show debug-IDs floating above each pickup.
 	// NOTE: you have to also uncomment 'm_NameTag' in Update
@@ -255,6 +282,8 @@ public class vp_ItemPickup : MonoBehaviour
 
 	}
 
+	bool m_WasSleepingLastFrame = false;
+
 
 	/// <summary>
 	/// 
@@ -262,30 +291,80 @@ public class vp_ItemPickup : MonoBehaviour
 	protected virtual void Update()
 	{
 
-		// remove the pickup if it has been depleted and the pickup
-		// sound has stopped playing
-		if (m_Depleted && !Audio.isPlaying)
-			SendMessage("Die", SendMessageOptions.DontRequireReceiver);
+		TryRemoveOnDeplete();
 
-		// disable rigidbody collider once it has landed
-		if (!m_Depleted && (Rigidbody != null) && Rigidbody.IsSleeping() && !Rigidbody.isKinematic)
-		{
-			vp_Timer.In(0.5f, delegate()	// allow some time for the pickup to touch down or it may pause floating
-			{
-				Rigidbody.isKinematic = true;
-				foreach (Collider c in Colliders)
-				{
-					if (c.isTrigger)
-						continue;
-					c.enabled = false;
-				}
-			});
-		}
+		TryDisableColliderOnSleep();
 
 		// SNIPPET: see note about 'm_NameTag' above
 		//if ((m_NameTag != null) && m_NameTag.enabled && string.IsNullOrEmpty(m_NameTag.Text))
 		//	m_NameTag.Text = ID.ToString();
 
+	}
+
+
+	/// <summary>
+	/// removes the pickup if it has been depleted and the pickup
+	/// sound has stopped playing
+	/// </summary>
+	protected virtual void TryRemoveOnDeplete()
+	{
+
+		if (!m_Depleted)
+			return;
+		
+		if (Audio.isPlaying)
+			return;
+
+		if (Respawner != null)
+			SendMessage("Die", SendMessageOptions.DontRequireReceiver);
+		else
+			vp_Utility.Destroy(gameObject);
+
+	}
+
+
+	/// <summary>
+	/// disables any rigidbody collider shortly after touchdown, so
+	/// the pickup won't disrupt player movement on failed pickups
+	/// </summary>
+	protected virtual void TryDisableColliderOnSleep()
+	{
+
+		if (!m_HaveRigidbody)
+			return;
+
+		if (m_Depleted)
+			return;
+
+		if(Rigidbody.isKinematic)
+			return;
+
+		if(!Rigidbody.IsSleeping())
+			return;
+
+		if (m_WasSleepingLastFrame)
+			return;
+
+		// allow some time for the pickup to touch down or it may pause floating
+		vp_Timer.In(COLLIDER_DISABLE_DELAY, ()=>
+		{
+
+			if(Rigidbody != null)
+				Rigidbody.isKinematic = true;
+
+			for (int c = 0; c < Colliders.Length; c++)
+			{
+				if (Colliders[c] == null)
+					continue;
+				if (Colliders[c].isTrigger)
+					continue;
+				Colliders[c].enabled = false;
+			}
+
+		});
+
+		m_WasSleepingLastFrame = Rigidbody.IsSleeping();
+		
 	}
 
 
@@ -322,10 +401,13 @@ public class vp_ItemPickup : MonoBehaviour
 	protected virtual void OnTriggerEnter(Collider col)
 	{
 
+		if (!m_Item.GiveOnContact)
+			return;
+
 		if (ItemType == null)
 			return;
 
-		if (!vp_Gameplay.isMaster)
+		if (!vp_Gameplay.IsMaster)
 			return;
 
 		if (!Collider.enabled)
@@ -431,9 +513,9 @@ public class vp_ItemPickup : MonoBehaviour
 		else
 			msg = string.Format(m_Messages.SuccessMultiple, m_Item.Type.IndefiniteArticle, m_Item.Type.DisplayName, m_Item.Type.DisplayNameFull, m_Item.Type.Description, m_PickedUpAmount.ToString());
 
-		vp_GlobalEvent<Transform, string>.Send("HUDText", recipient, msg);	// TODO: check if this is sent to local player (!)
+        vp_LocalPlayer.EventHandler.HUDText.Send(msg);
 
-		if (vp_Gameplay.isMultiplayer && vp_Gameplay.isMaster)
+        if (vp_Gameplay.IsMultiplayer && vp_Gameplay.IsMaster)
 			vp_GlobalEvent<vp_ItemPickup, Transform>.Send("TransmitPickup", this, recipient);	// will only execute on the master in multiplayer
 
 
@@ -455,7 +537,15 @@ public class vp_ItemPickup : MonoBehaviour
 	protected virtual void OnFail(Transform recipient)
 	{
 
-		if (!m_AlreadyFailed && m_Sound.PickupFailSound != null)
+		vp_FPPlayerEventHandler localPlayer = recipient.transform.root.GetComponentInChildren<vp_FPPlayerEventHandler>();
+		if (localPlayer != null)
+			if (localPlayer.Dead.Active)
+				return;
+
+		if (!m_AlreadyFailed
+			&& (m_Sound.PickupFailSound != null)
+			&& (!vp_Gameplay.IsMultiplayer || (vp_Gameplay.IsMultiplayer && (recipient.GetComponent<vp_FPPlayerEventHandler>() != null)))
+			)
 		{
 			Audio.pitch = m_Sound.FailSoundSlomo ? Time.timeScale : 1.0f;
 			Audio.PlayOneShot(m_Sound.PickupFailSound);

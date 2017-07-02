@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPController.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a first person controller class with a configurable motor and
 //					and many tweakable physics parameters for interaction with
@@ -14,6 +14,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 
@@ -31,17 +32,26 @@ public class vp_FPController : vp_CharacterController
 	public bool HeadContact { get { return m_HeadContact; } }
 	public Vector3 GroundNormal { get { return m_GroundHit.normal; } }
 	public float GroundAngle { get { return Vector3.Angle(m_GroundHit.normal, Vector3.up); } }
-	public Transform GroundTransform { get { return m_GroundHitTransform.transform; } }
 	protected bool m_HeadContact = false;
 	protected RaycastHit m_CeilingHit;					// contains info about any ceilings we may have bumped into
 	protected RaycastHit m_WallHit;						// contains info about any horizontal blockers we may have collided with
-	protected Terrain m_CurrentTerrain = null;			// caches the current terrain the controller is on
-	protected vp_SurfaceIdentifier m_CurrentSurface = null;	// caches the current vp_SurfaceIdentifier under the player
 
 	// physics trigger
 	protected CapsuleCollider m_TriggerCollider = null;		// trigger collider for incoming objects to detect us
 	public bool PhysicsHasCollisionTrigger = true;			// whether to automatically generate a child object with a trigger on startup
 	protected GameObject m_Trigger = null;					// trigger gameobject for detection of incoming objects
+
+	// surface identifier
+	protected vp_SurfaceIdentifier m_SurfaceIdentifier = null;
+	protected vp_SurfaceIdentifier SurfaceIdentifier
+	{
+		get
+		{
+			if ((m_SurfaceIdentifier == null))
+				m_SurfaceIdentifier = GetComponent<vp_SurfaceIdentifier>();
+			return m_SurfaceIdentifier;
+		}
+	}
 
 	// motor
 	public float MotorAcceleration = 0.18f;
@@ -141,9 +151,22 @@ public class vp_FPController : vp_CharacterController
 
 			m_Trigger.gameObject.AddComponent<vp_DamageTransfer>();
 
+			// if we have a SurfaceIdentifier, copy it along with its values onto the trigger.
+			// this will make the trigger emit the same fx as the controller when hit by bullets
+			if (SurfaceIdentifier != null)
+			{
+				vp_Timer.In(0.05f, ()=>	// wait atleast one frame for this to take effect properly
+				{
+					vp_SurfaceIdentifier triggerSurfaceIdentifier = m_Trigger.gameObject.AddComponent<vp_SurfaceIdentifier>();
+					triggerSurfaceIdentifier.SurfaceType = SurfaceIdentifier.SurfaceType;
+					triggerSurfaceIdentifier.AllowDecals = SurfaceIdentifier.AllowDecals;
+				});
+			}
+
 		}
 
 	}
+
 
 	/// <summary>
 	/// updates charactercontroller and physics trigger sizes
@@ -526,7 +549,7 @@ public class vp_FPController : vp_CharacterController
 
 
 	/// <summary>
-	/// combines motor & external forces into a move direction
+	/// combines motor and external forces into a move direction
 	/// and sets the resulting controller position
 	/// </summary>
 	protected override void FixedMove()
@@ -556,8 +579,8 @@ public class vp_FPController : vp_CharacterController
 		// --- move the charactercontroller ---
 
 		// ride along with movable objects
-		if (m_Platform != null && m_PositionOnPlatform != Vector3.zero)
-				Player.Move.Send(vp_MathUtility.NaNSafeVector3(m_Platform.TransformPoint(m_PositionOnPlatform) -
+		if (m_Platform != null && PositionOnPlatform != Vector3.zero)
+				Player.Move.Send(vp_MathUtility.NaNSafeVector3(m_Platform.TransformPoint(PositionOnPlatform) -
 																		m_Transform.position));
 
 		// move on our own
@@ -592,7 +615,7 @@ public class vp_FPController : vp_CharacterController
 			
 			// if we lost contact with a moving object, inherit its speed
 			// then forget about it
-			if (m_Platform != null && m_PositionOnPlatform != Vector3.zero)
+			if (m_Platform != null && PositionOnPlatform != Vector3.zero)
 			{
 				AddForce(m_Platform.position - m_LastPlatformPos);
 				m_Platform = null;
@@ -673,24 +696,12 @@ public class vp_FPController : vp_CharacterController
 			// detect and store moving platforms	// TODO: should be in base class for AI
 			if (m_GroundHit.collider.gameObject.layer == vp_Layer.MovingPlatform)
 			{
-				m_Platform = m_GroundHit.transform;
+				m_Platform = m_GroundHitTransform;
 				m_LastPlatformAngle = m_Platform.eulerAngles.y;
 			}
 			else
 				m_Platform = null;
 
-			// detect if there is terrain and store it if so	// TODO: should be in base class for AI and remote players
-			Terrain ter = m_GroundHitTransform.GetComponent<Terrain>();
-			if (ter != null)
-				m_CurrentTerrain = ter;
-			else
-				m_CurrentTerrain = null;
-
-			vp_SurfaceIdentifier sid = m_GroundHitTransform.GetComponent<vp_SurfaceIdentifier>();
-			if (sid != null)
-				m_CurrentSurface = sid;
-			else
-				m_CurrentSurface = null;
 		}
 
 
@@ -771,7 +782,7 @@ public class vp_FPController : vp_CharacterController
 	/// <summary>
 	/// moves and rotates the controller while standing on top a movable
 	/// object such as a rigidbody or a moving platform. NOTE: any moving
-	/// platforms must be in the'MovableObject' layer!
+	/// platforms must be in the'MovingPlatform' layer!
 	/// </summary>
 	protected override void UpdatePlatformMove()
 	{
@@ -800,7 +811,7 @@ public class vp_FPController : vp_CharacterController
 	
 
 	/// <summary>
-	/// sets the position of the Controller
+	/// sets the position and smooth position of the Controller
 	/// </summary>
 	public override void SetPosition(Vector3 position)
 	{
@@ -1123,7 +1134,7 @@ public class vp_FPController : vp_CharacterController
 
 		// abort if the rigidbody is kinematic and this is a singleplayer
 		// (or multiplayer master) scene
-		if (vp_Gameplay.isMaster && body.isKinematic)
+		if (vp_Gameplay.IsMaster && body.isKinematic)
 			return;
 
 		// abort if we can't push yet
@@ -1135,7 +1146,7 @@ public class vp_FPController : vp_CharacterController
 		// message to the rigidbody with the movedirection and point of impact.
 		// a multiplayer script can pick this up and ask the master to push the
 		// rigidbody over the network, as allowed
-		if (vp_Gameplay.isMultiplayer)
+		if (vp_Gameplay.IsMultiplayer)
 			vp_TargetEvent<Vector3, Vector3>.Send(body, "Push", hit.moveDirection, hit.point);
 		else
 			PushRigidbody(body, hit.moveDirection, hit.point);	// in singleplayer, go ahead and push the rigidbody
@@ -1264,7 +1275,6 @@ public class vp_FPController : vp_CharacterController
 	}
 
 
-
 	/// <summary>
 	/// gets or sets the current motor throttle
 	/// </summary>
@@ -1283,53 +1293,10 @@ public class vp_FPController : vp_CharacterController
 		get { return m_MotorJumpDone; }
 	}
 
-
+	
 	/// <summary>
-	/// returns the current mainTexture under the controller.
-	/// gets the texture from terrain if over terrain, else it
-	/// looks in the transform of the current object the controller
-	/// is over
-	/// </summary>
-	protected virtual Texture OnValue_GroundTexture
-	{
-		get
-		{
-
-			if (GroundTransform == null)
-				return null;
-
-			// return if no renderer and no terrain under the controller
-			if (GroundTransform.GetComponent<Renderer>() == null && m_CurrentTerrain == null)
-				return null;
-
-			int terrainTextureID = -1;
-
-			// check to see if a main texture can be retrieved from the terrain
-			if (m_CurrentTerrain != null)
-			{
-				terrainTextureID = vp_FootstepManager.GetMainTerrainTexture(Player.Position.Get(), m_CurrentTerrain);
-				if (terrainTextureID > m_CurrentTerrain.terrainData.splatPrototypes.Length - 1)
-					return null;
-			}
-
-			// return the texture
-			return m_CurrentTerrain == null ? GroundTransform.GetComponent<Renderer>().material.mainTexture : m_CurrentTerrain.terrainData.splatPrototypes[terrainTextureID].texture;
-
-		}
-	}
-
-
-	/// <summary>
-	/// returns the current surface type under the controller
-	/// </summary>
-	protected virtual vp_SurfaceIdentifier OnValue_SurfaceType
-	{
-		get { return m_CurrentSurface; }
-	}
-
-
-	/// <summary>
-	/// 
+	/// always returns true if the player is in 1st person mode,
+	/// and false in 3rd person
 	/// </summary>
 	protected virtual bool OnValue_IsFirstPerson
 	{

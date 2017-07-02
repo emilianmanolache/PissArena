@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_RagdollHandler.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this script handles initialization and death + respawn behavior
 //					of ragdoll physics on a player body hierarchy. it caches any
@@ -166,7 +166,7 @@ public class vp_RagdollHandler : MonoBehaviour
 	protected virtual void Awake()
 	{
 
-#if UNITY_IPHONE || UNITY_ANDROID
+#if UNITY_IOS || UNITY_ANDROID
 		Debug.LogError("Error (" + this + ") This script from base UFPS is intended for desktop and not supported on mobile. Are you attempting to use a PC/Mac player prefab on IOS/Android?");
 		Component.DestroyImmediate(this);
 		return;
@@ -356,10 +356,10 @@ public class vp_RagdollHandler : MonoBehaviour
 		// unity culling bug where the mesh goes permanently invisible to other
 		// players due to ragdoll falling 'out of bounds'. to prevent this we
 		// postpone ragdolling in 0.1 second steps until reliably grounded
-		if (enabled)
+		if (vp_Gameplay.IsMultiplayer && enabled)
 		{
 
-			// only allow ragdolling of dead players. this cancels any postponed
+			// allow ragdolling of dead players only. this cancels any postponed
 			// ragdolling when player has come back alive
 			if (!Player.Dead.Active)
 				return;

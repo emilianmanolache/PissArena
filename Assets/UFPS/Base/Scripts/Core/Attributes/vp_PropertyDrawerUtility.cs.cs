@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_PropertyDrawerUtility.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	utility class for drawing some common UFPS properties in
 //					the Inspector
@@ -314,12 +314,9 @@ public static class vp_PropertyDrawerUtility
 	public static void Separator(Rect pos)
 	{
 
-		GUI.color = (EditorGUIUtility.isProSkin ? new Color(0, 0, 0, 1.0f) :
-		new Color(1, 1, 1, 0.25f));
+		GUI.color = new Color(1, 1, 1, 0.25f);
 		pos.x += 4;
 		pos.width -= 8;
-		if (EditorGUIUtility.isProSkin)
-			GUI.Box(pos, GUIContent.none, "HorizontalSlider");
 		GUI.Box(pos, GUIContent.none, "HorizontalSlider");
 		GUI.color = Color.white;
 

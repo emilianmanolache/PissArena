@@ -1,11 +1,11 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_ShooterEditor.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
-//	description:	custom inspector for the vp_FPShooter class
+//	description:	custom inspector for the vp_Shooter class
 //
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -154,6 +154,10 @@ public class vp_ShooterEditor : Editor
 			m_Component.ProjectileSpread = EditorGUILayout.Slider("Spread", m_Component.ProjectileSpread, 0, 360);
 			m_Component.ProjectileSpawnDelay = Mathf.Abs(EditorGUILayout.FloatField("Spawn Delay", m_Component.ProjectileSpawnDelay));
 			m_Component.ProjectileSourceIsRoot = EditorGUILayout.Toggle("Root Obj. is Source", m_Component.ProjectileSourceIsRoot);
+			m_Component.FireMessage = EditorGUILayout.TextField("Fire Message", m_Component.FireMessage);
+			GUI.enabled = false;
+			GUILayout.Label("(Optional) If this is set, a regular Unity message will be\nsent to the root gameobject every time the shooter fires.", vp_EditorGUIUtility.NoteStyle);
+			GUI.enabled = true;
 
 			vp_EditorGUIUtility.Separator();
 

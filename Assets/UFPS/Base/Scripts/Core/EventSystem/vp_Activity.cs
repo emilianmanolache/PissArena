@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Activity.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	an advanced event type implementing a set of common activity
 //					related game logics such as event duration, trigger intervals,
@@ -172,21 +172,21 @@ public class vp_Activity : vp_Event			// non-generic version for 0 arguments
 										typeof(vp_Activity.Callback),
 										typeof(vp_Activity.Callback)};
 
-		m_Fields = new FieldInfo[] {	this.GetType().GetField("StartCallbacks"),
-										this.GetType().GetField("StopCallbacks"),
-										this.GetType().GetField("StartConditions"),
-										this.GetType().GetField("StopConditions"),
-										this.GetType().GetField("FailStartCallbacks"),
-										this.GetType().GetField("FailStopCallbacks")};
+		m_Fields = new FieldInfo[] {	Type.GetField("StartCallbacks"),
+										Type.GetField("StopCallbacks"),
+										Type.GetField("StartConditions"),
+										Type.GetField("StopConditions"),
+										Type.GetField("FailStartCallbacks"),
+										Type.GetField("FailStopCallbacks")};
 
 		StoreInvokerFieldNames();
 
-		m_DefaultMethods = new MethodInfo[]{	this.GetType().GetMethod("Empty"),
-												this.GetType().GetMethod("Empty"),
-												this.GetType().GetMethod("AlwaysOK"),
-												this.GetType().GetMethod("AlwaysOK"),
-												this.GetType().GetMethod("Empty"),
-												this.GetType().GetMethod("Empty")};
+		m_DefaultMethods = new MethodInfo[]{	Type.GetMethod("Empty"),
+												Type.GetMethod("Empty"),
+												Type.GetMethod("AlwaysOK"),
+												Type.GetMethod("AlwaysOK"),
+												Type.GetMethod("Empty"),
+												Type.GetMethod("Empty")};
 
 		Prefixes = new Dictionary<string, int>() {	{ "OnStart_", 0 },
 													{ "OnStop_", 1 },
@@ -259,8 +259,11 @@ public class vp_Activity : vp_Event			// non-generic version for 0 arguments
 			if (!b.Invoke())
 			{
 				m_Argument = null;
-				if(startIfAllowed)
-					FailStartCallbacks.Invoke();
+				if (startIfAllowed)
+				{
+					if(FailStartCallbacks != null)
+						FailStartCallbacks.Invoke();
+				}
 
 				return false;
 			}
@@ -299,7 +302,10 @@ public class vp_Activity : vp_Event			// non-generic version for 0 arguments
 			if (!b.Invoke())
 			{
 				if (stopIfAllowed)
-					FailStopCallbacks.Invoke();
+				{
+					if(FailStopCallbacks != null)
+						FailStopCallbacks.Invoke();
+				}
 
 				return false;
 			}
@@ -325,7 +331,8 @@ public class vp_Activity : vp_Event			// non-generic version for 0 arguments
 			if ((value == true) && !m_Active)
 			{
 				m_Active = true;
-				StartCallbacks.Invoke();
+				if(StartCallbacks != null)
+					StartCallbacks.Invoke();
 				NextAllowedStopTime = Time.time + m_MinDuration;
 				if (m_MaxDuration > 0.0f)
 					vp_Timer.In(m_MaxDuration, delegate() { Stop(); }, m_ForceStopTimer);
@@ -333,7 +340,8 @@ public class vp_Activity : vp_Event			// non-generic version for 0 arguments
 			else if ((value == false) && m_Active)
 			{
 				m_Active = false;
-				StopCallbacks.Invoke();
+				if (StopCallbacks != null)
+					StopCallbacks.Invoke();
 				NextAllowedStartTime = Time.time + m_MinPause;
 				m_Argument = null;
 			}

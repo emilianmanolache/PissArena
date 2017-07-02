@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_InventoryCapsAttribute.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	inventory caps foldout editor logic and drawing
 //
@@ -102,35 +102,37 @@ public class vp_InventoryCapsDrawer : PropertyDrawer
 		pos.width -= 15;
 
 		// --- draw item caps ---
-
+		
 		for (int v = 0; v < inventory.m_ItemCapInstances.Count; v++)
 		{
 
 			vp_Inventory.ItemCap itemCap = inventory.m_ItemCapInstances[v];
 
-			string name = itemCap.Type.ToString();
-			int NO_VALUE = -1;
-			vp_PropertyDrawerUtility.ItemCard(pos,
-				itemCap.Type.Icon,
-				name,
-				itemCap.Type,
-				ref itemCap.Cap,
-				"Cap",
-				delegate()
-				{
-					inventory.SetItemCap(itemCap.Type, itemCap.Cap);
-					if (itemCap.Type is vp_UnitType)
-						inventory.Refresh();
-				},
-				ref NO_VALUE,
-				null,
-				null,
-				delegate()
-				{
-					m_CapToRemove = itemCap;
-				});
-
-			pos.y += 21;
+			if ((itemCap != null) && (itemCap.Type != null))
+			{
+				string name = itemCap.Type.ToString();
+				int NO_VALUE = -1;
+				vp_PropertyDrawerUtility.ItemCard(pos,
+					itemCap.Type.Icon,
+					name,
+					itemCap.Type,
+					ref itemCap.Cap,
+					"Cap",
+					delegate()
+					{
+						inventory.SetItemCap(itemCap.Type, itemCap.Cap);
+						if (itemCap.Type is vp_UnitType)
+							inventory.Refresh();
+					},
+					ref NO_VALUE,
+					null,
+					null,
+					delegate()
+					{
+						m_CapToRemove = itemCap;
+					});
+				pos.y += 21;
+			}
 		}
 
 		// --- draw 'add object' box ---

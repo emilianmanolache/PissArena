@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_MovingPlatform.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a very versatile moving platform class, supporting various motion
 //					interpolation modes, path behaviors, collision detection, player
@@ -21,6 +21,10 @@ using UnityEngine;
 using System.Collections.Generic;
 using System;
 using System.Collections;
+
+#if UNITY_5_4_OR_NEWER
+using UnityEngine.SceneManagement;
+#endif
 
 [RequireComponent(typeof(AudioSource))]
 [RequireComponent(typeof(Rigidbody))]
@@ -93,6 +97,8 @@ public class vp_MovingPlatform : MonoBehaviour
 	// dictionary to optimize lookup of colliding players
 	protected static Dictionary<Collider, vp_PlayerEventHandler> m_KnownPlayers = new Dictionary<Collider, vp_PlayerEventHandler>();
 
+	protected bool m_Initialized = false;
+
 	// enums
 
 	public enum PathMoveType
@@ -129,10 +135,20 @@ public class vp_MovingPlatform : MonoBehaviour
 
 
 	/// <summary>
-	/// 
+	/// this needs to happen in OnEnable rather that Start, to work in
+	/// the multiplayer add-on
 	/// </summary>
-	void Start()
+	void OnEnable()
 	{
+
+#if UNITY_5_4_OR_NEWER
+		SceneManager.sceneLoaded += OnLevelLoad;
+#endif
+
+		if (m_Initialized)
+			return;
+
+		m_Initialized = true;
 
 		m_Transform = transform;
 		m_Collider = GetComponentInChildren<Collider>();
@@ -144,6 +160,7 @@ public class vp_MovingPlatform : MonoBehaviour
 		m_Audio = GetComponent<AudioSource>();
 		m_Audio.loop = true;
 		m_Audio.clip = SoundMove;
+		m_Audio.spatialBlend = 1.0f; 
 
 		// abort if no waypoints
 		if (PathWaypoints == null)
@@ -178,6 +195,19 @@ public class vp_MovingPlatform : MonoBehaviour
 			if (MoveAutoStartTarget > m_Waypoints.Count - 1)
 				MoveAutoStartTarget = m_Waypoints.Count - 1;
 		}
+
+	}
+
+
+	/// <summary>
+	/// 
+	/// </summary>
+	void OnDisable()
+	{
+
+#if UNITY_5_4_OR_NEWER
+		SceneManager.sceneLoaded -= OnLevelLoad;
+#endif
 
 	}
 
@@ -279,7 +309,9 @@ public class vp_MovingPlatform : MonoBehaviour
 
 		// play the start sound, if any
 		if (SoundStart != null)
-			m_Audio.PlayOneShot(SoundStart);
+		{
+			vp_Timer.In(0, () =>	{	m_Audio.PlayOneShot(SoundStart);	});	// wait one frame so we don't mute the move sound
+		}
 
 		// SNIPPET: here is how to detect whether we are heading out
 		// from the first versus going back from the last waypoint
@@ -469,7 +501,7 @@ public class vp_MovingPlatform : MonoBehaviour
 	public void GoTo(int targetWayPoint)
 	{
 
-		if (!vp_Gameplay.isMaster)
+		if (!vp_Gameplay.IsMaster)
 			return;
 
 		if (Time.time < m_NextAllowedMoveTime)
@@ -616,12 +648,14 @@ public class vp_MovingPlatform : MonoBehaviour
 	public bool GetPlayer(Collider col)
 	{
 
-		if ((col.gameObject.layer != vp_Layer.LocalPlayer)
-			&& (col.gameObject.layer != vp_Layer.RemotePlayer))
+		if (
+			(col.gameObject.layer != vp_Layer.IgnoreBullets)		// typical layer for the trigger collider of local player
+			&& (col.gameObject.layer != vp_Layer.LocalPlayer)		// for local players that have no collision trigger
+			&& (col.gameObject.layer != vp_Layer.RemotePlayer)		// multiplayer remote players
+			)
 			return false;
 		
-		// see if this is a valid player object, or auto-approve
-		// if it has been recently validated
+		// see if this is a valid player object, or auto-approve if it has been recently validated
 		if (!m_KnownPlayers.ContainsKey(col))
 		{
 
@@ -734,7 +768,7 @@ public class vp_MovingPlatform : MonoBehaviour
 	public void TryAutoStart()
 	{
 
-		if (!vp_Gameplay.isMaster)
+		if (!vp_Gameplay.IsMaster)
 			return;
 
 		if (MoveAutoStartTarget == 0)
@@ -751,7 +785,11 @@ public class vp_MovingPlatform : MonoBehaviour
 	/// <summary>
 	/// 
 	/// </summary>
-	protected void OnLevelWasLoaded()
+#if UNITY_5_4_OR_NEWER
+	protected virtual void OnLevelLoad(Scene scene, LoadSceneMode mode)
+#else
+	protected virtual void OnLevelWasLoaded()
+#endif
 	{
 
 		m_KnownPlayers.Clear();

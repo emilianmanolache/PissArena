@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPInput.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	a script to collect all mouse and keyboard input for first person
 //					controls in one place
@@ -18,6 +18,8 @@ public class vp_FPInput : vp_Component
 
 	// mouse look
 	public Vector2 MouseLookSensitivity = new Vector2(5.0f, 5.0f);
+	public bool MouseLookMutePitch = false;             // use this to make the 'InputSmoothLook' and 'InputRawLook' events always return zero pitch / yaw , regardless of sensitivity
+	public bool MouseLookMuteYaw = false;				// -		"	-
 	public int MouseLookSmoothSteps = 10;				// allowed range: 1-20
 	public float MouseLookSmoothWeight = 0.5f;			// allowed range: 0.0f - 1.0f
 	public bool MouseLookAcceleration = false;
@@ -89,7 +91,7 @@ public class vp_FPInput : vp_Component
 	/// </summary>
 	protected override void Update()
 	{
-
+		
 		// manage input for GUI
 		UpdateCursorLock();
 
@@ -145,8 +147,8 @@ public class vp_FPInput : vp_Component
 	{
 
 		// NOTE: you could also use 'GetAxis', but that would add smoothing
-		// to the input from both Ultimate FPS and from Unity, and might
-		// require some tweaking in order not to feel laggy
+		// to the input from both UFPS and from Unity, and might require some
+		// tweaking in order not to feel laggy
 
 		FPPlayer.InputMoveVector.Set(new Vector2(vp_Input.GetAxisRaw("Horizontal"), vp_Input.GetAxisRaw("Vertical")));
 
@@ -163,7 +165,9 @@ public class vp_FPInput : vp_Component
 	protected virtual void InputRun()
 	{
 
-		if (vp_Input.GetButton("Run"))
+		if (vp_Input.GetButton("Run")
+			  || vp_Input.GetAxisRaw("LeftTrigger") > 0.5f		// sprint using the left gamepad trigger
+			)
 			FPPlayer.Run.TryStart();
 		else
 			FPPlayer.Run.TryStop();
@@ -252,7 +256,7 @@ public class vp_FPInput : vp_Component
 	protected virtual void InputAttack()
 	{
 
-		// TIP: uncomment this to prevent player from attacking while running
+		// TIP: you could do this to prevent player from attacking while running
 		//if (Player.Run.Active)
 		//	return;
 
@@ -261,7 +265,9 @@ public class vp_FPInput : vp_Component
 		if (!vp_Utility.LockCursor)
 			return;
 
-		if (vp_Input.GetButton("Attack"))
+		if (vp_Input.GetButton("Attack")
+			  || vp_Input.GetAxisRaw("RightTrigger") > 0.5f		// fire using the right gamepad trigger
+			)
 			FPPlayer.Attack.TryStart();
 		else
 			FPPlayer.Attack.TryStop();
@@ -300,17 +306,16 @@ public class vp_FPInput : vp_Component
 
 		// --- switch to weapon 1-10 by direct button press ---
 
-		//if (vp_Input.GetButton("SetWeapon1"))	// (etc.) suggested input axes
-		if (Input.GetKeyDown(KeyCode.Alpha1)) FPPlayer.SetWeapon.TryStart(1);
-		if (Input.GetKeyDown(KeyCode.Alpha2)) FPPlayer.SetWeapon.TryStart(2);
-		if (Input.GetKeyDown(KeyCode.Alpha3)) FPPlayer.SetWeapon.TryStart(3);
-		if (Input.GetKeyDown(KeyCode.Alpha4)) FPPlayer.SetWeapon.TryStart(4);
-		if (Input.GetKeyDown(KeyCode.Alpha5)) FPPlayer.SetWeapon.TryStart(5);
-		if (Input.GetKeyDown(KeyCode.Alpha6)) FPPlayer.SetWeapon.TryStart(6);
-		if (Input.GetKeyDown(KeyCode.Alpha7)) FPPlayer.SetWeapon.TryStart(7);
-		if (Input.GetKeyDown(KeyCode.Alpha8)) FPPlayer.SetWeapon.TryStart(8);
-		if (Input.GetKeyDown(KeyCode.Alpha9)) FPPlayer.SetWeapon.TryStart(9);
-		if (Input.GetKeyDown(KeyCode.Alpha0)) FPPlayer.SetWeapon.TryStart(10);
+		if (vp_Input.GetButtonDown("SetWeapon1")) FPPlayer.SetWeapon.TryStart(1);
+		if (vp_Input.GetButtonDown("SetWeapon2")) FPPlayer.SetWeapon.TryStart(2);
+		if (vp_Input.GetButtonDown("SetWeapon3")) FPPlayer.SetWeapon.TryStart(3);
+		if (vp_Input.GetButtonDown("SetWeapon4")) FPPlayer.SetWeapon.TryStart(4);
+		if (vp_Input.GetButtonDown("SetWeapon5")) FPPlayer.SetWeapon.TryStart(5);
+		if (vp_Input.GetButtonDown("SetWeapon6")) FPPlayer.SetWeapon.TryStart(6);
+		if (vp_Input.GetButtonDown("SetWeapon7")) FPPlayer.SetWeapon.TryStart(7);
+		if (vp_Input.GetButtonDown("SetWeapon8")) FPPlayer.SetWeapon.TryStart(8);
+		if (vp_Input.GetButtonDown("SetWeapon9")) FPPlayer.SetWeapon.TryStart(9);
+		if (vp_Input.GetButtonDown("SetWeapon10")) FPPlayer.SetWeapon.TryStart(10);
 
 		// --- unwield current weapon by direct button press ---
 
@@ -420,6 +425,21 @@ public class vp_FPInput : vp_Component
 		if (m_LastMouseLookFrame == Time.frameCount)
 			return m_CurrentMouseLook;
 
+// NOTE: this directive addresses an issue with bluetooth gamepads
+// when developing for GearVR. please report if it causes any trouble
+#if (!UNITY_ANDROID || (UNITY_ANDROID && UNITY_EDITOR))
+
+		// don't allow mouselook if we are using the mouse cursor
+		if (MouseCursorBlocksMouseLook && !vp_Utility.LockCursor)
+			return Vector2.zero;
+
+		// only recalculate mouselook once per frame or smoothing will break
+		if (m_LastMouseLookFrame == Time.frameCount)
+			return m_CurrentMouseLook;
+
+#endif
+
+
 		m_LastMouseLookFrame = Time.frameCount;
 
 		// --- fetch mouse input ---
@@ -465,8 +485,8 @@ public class vp_FPInput : vp_Component
 		if (MouseLookAcceleration)
 		{
 			mouseAcceleration = Mathf.Sqrt((accX * accX) + (accY * accY)) / Delta;
-			mouseAcceleration = (mouseAcceleration <= MouseLookAccelerationThreshold) ? 0.0f : mouseAcceleration;
-		}
+            mouseAcceleration = ((mouseAcceleration <= MouseLookAccelerationThreshold) || MouseLookAccelerationThreshold == 0.0f) ? 0.0f : mouseAcceleration;
+        }
 
 		m_CurrentMouseLook.x *= (MouseLookSensitivity.x + mouseAcceleration);
 		m_CurrentMouseLook.y *= (MouseLookSensitivity.y + mouseAcceleration);
@@ -485,9 +505,15 @@ public class vp_FPInput : vp_Component
 	protected virtual Vector2 GetMouseLookRaw()
 	{
 
-		// don't allow mouselook if we are using the mouse cursor
+// TEST: this directive addresses an issue with bluetooth gamepads.
+// please report if it causes any trouble
+#if ((!UNITY_ANDROID && !UNITY_IOS) || (UNITY_ANDROID && UNITY_EDITOR) || (UNITY_IOS && UNITY_EDITOR))
+
+		// block mouselook when using the mouse cursor
 		if (MouseCursorBlocksMouseLook && !vp_Utility.LockCursor)
 			return Vector2.zero;
+
+#endif
 
 		m_MouseLookRawMove.x = vp_Input.GetAxisRaw("Mouse X");
 		m_MouseLookRawMove.y = vp_Input.GetAxisRaw("Mouse Y");
@@ -498,15 +524,29 @@ public class vp_FPInput : vp_Component
 
 
 	/// <summary>
-	/// returns the current horizontal and vertical input vector
+	/// returns the current horizontal and vertical input vector depending
+	/// on the current platform and / or input control type
 	/// </summary>
 	protected virtual Vector2 OnValue_InputMoveVector
 	{
 		get { return m_MoveVector; }
-#if UNITY_IPHONE || UNITY_ANDROID
+		// these platforms always use analog movement
+#if UNITY_IOS || UNITY_ANDROID || UNITY_PS3 || UNITY_PS4 || UNITY_XBOXONE
 		set	{	m_MoveVector = ((value.sqrMagnitude > 1) ? value.normalized : value);	}
 #else
-		set { m_MoveVector = ((value != Vector2.zero) ? value.normalized : value); }
+		// platform supports either analog or digital movement
+		set
+		{
+			switch (vp_Input.Instance.ControlType)
+			{
+				case 0:	// digital (keyboard)
+					m_MoveVector = ((value != Vector2.zero) ? value.normalized : value);
+					break;
+				case 1:	// analog (joystick)
+					m_MoveVector = ((value.sqrMagnitude > 1) ? value.normalized : value);
+					break;
+			}
+		}
 #endif
 	}
 
@@ -543,8 +583,8 @@ public class vp_FPInput : vp_Component
 	/// </summary>
 	protected virtual bool OnValue_Pause
 	{
-		get { return vp_TimeUtility.Paused; }
-		set { vp_TimeUtility.Paused = (vp_Gameplay.isMultiplayer ? false : value); }
+		get { return vp_Gameplay.IsPaused; }
+		set { vp_Gameplay.IsPaused = value; }
 	}
 
 
@@ -582,7 +622,10 @@ public class vp_FPInput : vp_Component
 	{
 		get
 		{
-			return GetMouseLook();
+			Vector2 ml = GetMouseLook();
+			ml.x *= (MouseLookMuteYaw ? 0 : 1);
+			ml.y *= (MouseLookMutePitch ? 0 : 1);
+			return ml;
 		}
 	}
 
@@ -594,7 +637,10 @@ public class vp_FPInput : vp_Component
 	{
 		get
 		{
-			return GetMouseLookRaw();
+			Vector2 ml = GetMouseLookRaw();
+			ml.x *= (MouseLookMuteYaw ? 0 : 1);
+			ml.y *= (MouseLookMutePitch ? 0 : 1);
+			return ml;
 		}
 	}
 

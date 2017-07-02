@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPWeaponShooterEditor.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	custom inspector for the vp_FPWeaponShooter class
 //
@@ -162,6 +162,10 @@ public class vp_FPWeaponShooterEditor : Editor
 			m_Component.ProjectileSpread = EditorGUILayout.Slider("Spread", m_Component.ProjectileSpread, 0, 360);
 			m_Component.ProjectileSpawnDelay = Mathf.Abs(EditorGUILayout.FloatField("Spawn Delay", m_Component.ProjectileSpawnDelay));
 			m_Component.ProjectileSourceIsRoot = EditorGUILayout.Toggle("Root Obj. is Source", m_Component.ProjectileSourceIsRoot);
+			m_Component.FireMessage = EditorGUILayout.TextField("Fire Message", m_Component.FireMessage);
+			GUI.enabled = false;
+			GUILayout.Label("(Optional) If this is set, a regular Unity message will be\nsent to the root gameobject every time the shooter fires.", vp_EditorGUIUtility.NoteStyle);
+			GUI.enabled = true;
 
 			GUI.enabled = false;
 			if (m_Component.m_ProjectileSpawnPoint != null)
@@ -325,7 +329,7 @@ public class vp_FPWeaponShooterEditor : Editor
 		if (m_AnimationFoldout)
 		{
 			m_Component.AnimationFire = (AnimationClip)EditorGUILayout.ObjectField("Fire", m_Component.AnimationFire, typeof(AnimationClip), false);
-			//m_Component.AnimationReload = (AnimationClip)EditorGUILayout.ObjectField("Reload", m_Component.AnimationReload, typeof(AnimationClip), false);
+			m_Component.AnimationOutOfAmmo = (AnimationClip)EditorGUILayout.ObjectField("OutOfAmmo", m_Component.AnimationOutOfAmmo, typeof(AnimationClip), false);
 			vp_EditorGUIUtility.Separator();
 		}
 

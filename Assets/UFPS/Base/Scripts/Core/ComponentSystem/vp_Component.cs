@@ -1,15 +1,15 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Component.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	base class for extended monobehaviours. these components have
-//					the added functionality of support for the VisionPunk component
-//					and event systems, an 'Init' method that gets executed
-//					once after all 'Start' calls, and caching of gameobject
-//					properties and startup gameobject hierarchy
+//					the added functionality of support for the UFPS component and
+//					event systems, an 'Init' method that gets executed once after
+//					all 'Start' calls, and caching of gameobject properties and
+//					startup gameobject hierarchy
 //
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -45,6 +45,7 @@ public class vp_Component : MonoBehaviour
 	protected Transform m_Root = null;
 	protected AudioSource m_Audio = null;
 	protected Collider m_Collider = null;
+	protected Camera m_Camera = null;
 
 	public List<vp_State> States = new List<vp_State>();				// list of state presets for this vp_Component
 	public List<vp_Component> Children = new List<vp_Component>();		// list of  child vp_Components
@@ -155,6 +156,16 @@ public class vp_Component : MonoBehaviour
 			return m_Collider;
 		}
 	}
+	
+	public Camera Camera
+	{
+		get
+		{
+			if (m_Camera == null)
+				m_Camera = GetComponent<Camera>();
+			return m_Camera;
+		}
+	}
 
 
 	/// <summary>
@@ -230,10 +241,10 @@ public class vp_Component : MonoBehaviour
 	/// in 'Init' we do things that must be run once at the
 	/// beginning - but only after all other components have
 	/// run their 'Start' calls. this method is called once
-	/// in the first 'Update'. NOTE: 1) unlike the standard Unity
+	/// in the first 'Update'. NOTES: 1) unlike the standard Unity
 	/// methods, this is a virtual method. 2) if adding code here,
 	/// remember to call it using 'base.Init();' on the first
-	/// line of the 'Init' method in the derived classes
+	/// line of the 'Init' method in any derived classes
 	/// </summary>
 	protected virtual void Init()
 	{
@@ -272,6 +283,7 @@ public class vp_Component : MonoBehaviour
 	protected virtual void Update()
 	{
 
+		// TODO: remove for performance (instead do this on next frame using coroutine)
 		// initialize if needed. NOTE: this will run the inherited
 		// 'Init' method (and if non-present: the one above)
 		if (!m_Initialized)
@@ -284,7 +296,7 @@ public class vp_Component : MonoBehaviour
 
 
 	/// <summary>
-	/// 
+	/// TODO: remove for performance
 	/// </summary>
 	protected virtual void FixedUpdate()
 	{
@@ -292,7 +304,7 @@ public class vp_Component : MonoBehaviour
 
 	
 	/// <summary>
-	/// 
+	/// TODO: remove for performance
 	/// </summary>
 	protected virtual void LateUpdate()
 	{
@@ -301,10 +313,16 @@ public class vp_Component : MonoBehaviour
 
 	/// <summary>
 	/// sets 'state' true / false on the component and refreshes it.
-	/// NOTE: by default only affects active & enabled components
+	/// NOTE: by default only affects active and enabled components
 	/// </summary>
 	public void SetState(string state, bool enabled = true, bool recursive = false, bool includeDisabled = false)
 	{
+
+		if (StateManager == null)
+			return;
+
+		if (state == null)
+			return;
 
 		StateManager.SetState(state, enabled);
 
@@ -312,13 +330,16 @@ public class vp_Component : MonoBehaviour
 		// set 'state' on every object found
 		if (recursive)
 		{
-			foreach (vp_Component c in Children)
+			for (int c = 0; c < Children.Count; c++)
 			{
-
-				if ((!includeDisabled) && !(vp_Utility.IsActive(c.gameObject) && c.enabled))
+				if (Children[c] == null)
+					continue;
+				if ((!includeDisabled) && !(vp_Utility.IsActive(Children[c].gameObject) && Children[c].enabled))
 					continue;
 
-				c.SetState(state, enabled, true, includeDisabled);
+				//Debug.Log("\t\t\t\t\tsetting '" + state + "' of '" + Children[c].name + "->" + Children[c].GetType() + "' to: " + enabled);
+
+				Children[c].SetState(state, enabled, true, includeDisabled);
 
 			}
 		}
@@ -380,7 +401,7 @@ public class vp_Component : MonoBehaviour
 
 	/// <summary>
 	/// returns true if the state associated with the passed
-	/// string is on the list & enabled, otherwise returns null
+	/// string is on the list and enabled, otherwise returns null
 	/// </summary>
 	public bool StateEnabled(string stateName)
 	{
@@ -440,7 +461,7 @@ public class vp_Component : MonoBehaviour
 
 	/// <summary>
 	/// copies component values into the default state's preset.
-	/// if needed, creates & adds default state to the state list.
+	/// if needed, creates and adds default state to the state list.
 	/// to be called on app startup and statemanager recombine
 	/// </summary>
 #if UNITY_EDITOR
@@ -454,8 +475,7 @@ public class vp_Component : MonoBehaviour
 
 	}
 #endif
-
-
+	
 
 	/// <summary>
 	/// helper method to apply a preset from memory and refresh
@@ -605,7 +625,8 @@ public class vp_Component : MonoBehaviour
 	{
 
 		m_DeactivationTimer.Cancel();
-		ActivateInternal(gameObject);
+		vp_Utility.Activate(gameObject);
+		//ActivateInternal(gameObject);		// TEMP: reverted due to weapons going invisible in 3rd person
 
 	}
 
@@ -619,8 +640,9 @@ public class vp_Component : MonoBehaviour
 	public virtual void Deactivate()
 	{
 
-		ActivateInternal(gameObject, false);
-	
+		vp_Utility.Activate(gameObject, false);
+		//ActivateInternal(gameObject, false);	// TEMP: reverted due to weapons going invisible in 3rd person
+
 	}
 
 

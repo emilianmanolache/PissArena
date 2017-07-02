@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPWeaponShooter.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this class adds firearm features to a vp_FPWeapon. it has all
 //					the capabilities of its inherited class (vp_Shooter), adding
@@ -29,6 +29,7 @@ public class vp_FPWeaponShooter : vp_WeaponShooter
 
 	// animation
 	public AnimationClip AnimationFire = null;
+	public AnimationClip AnimationOutOfAmmo = null;
 
 	// event handler property cast as an FPPlayerEventHandler
 	protected vp_FPPlayerEventHandler Player
@@ -173,6 +174,21 @@ public class vp_FPWeaponShooter : vp_WeaponShooter
 			vp_Timer.In(MotionRecoilDelay, ApplyRecoil);
 
 		base.Fire();
+
+		if (AnimationOutOfAmmo != null)
+		{
+			if (m_Player.CurrentWeaponAmmoCount.Get() == 0)
+			{
+				if (WeaponAnimation[AnimationOutOfAmmo.name] == null)
+					Debug.LogError("Error (" + this + ") No animation named '" + AnimationOutOfAmmo.name + "' is listed in this prefab. Make sure the prefab has an 'Animation' component which references all the clips you wish to play on the weapon.");
+				else
+				{
+					WeaponAnimation[AnimationOutOfAmmo.name].time = 0.0f;
+					WeaponAnimation.Sample();
+					WeaponAnimation.Play(AnimationOutOfAmmo.name);
+				}
+			}
+		}
 
 	}
 

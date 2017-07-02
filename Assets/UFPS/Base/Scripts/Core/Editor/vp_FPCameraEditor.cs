@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_FPCameraEditor.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	custom inspector for the vp_FPCamera class
 //
@@ -116,7 +116,7 @@ public class vp_FPCameraEditor : Editor
 
 
 	/// <summary>
-	/// 
+	/// TODO: remove this soon
 	/// </summary>
 	public virtual void DoMouseFoldout()
 	{
@@ -145,6 +145,7 @@ public class vp_FPCameraEditor : Editor
 			if (fovDirty != new Vector2(m_Component.RenderingFieldOfView, 0.0f))
 				m_Component.Zoom();
 			m_Component.RenderingZoomDamping = EditorGUILayout.Slider("Zoom Damping", m_Component.RenderingZoomDamping, 0.0f, 5.0f);
+			m_Component.DisableVRModeOnStartup = EditorGUILayout.Toggle("Disable VR mode on startup", m_Component.DisableVRModeOnStartup);
 
 			vp_EditorGUIUtility.Separator();
 		}
@@ -181,6 +182,7 @@ public class vp_FPCameraEditor : Editor
 			GUILayout.Label("Kneeling is down force upon fall impact. Softness is the\nnumber of frames over which to even out each fall impact.", vp_EditorGUIUtility.NoteStyle);
 			GUI.enabled = true;
 			m_Component.PositionEarthQuakeFactor = EditorGUILayout.Slider("Earthquake Factor", m_Component.PositionEarthQuakeFactor, 0, 10);
+			m_Component.HasCollision = EditorGUILayout.Toggle("Use Camera Collision", m_Component.HasCollision);
 
 			vp_EditorGUIUtility.Separator();
 		}

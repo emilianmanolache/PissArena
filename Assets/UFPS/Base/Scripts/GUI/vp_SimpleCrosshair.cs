@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_SimpleCrosshair.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this script is just a stub for your own a way cooler crosshair
 //					system. it simply draws a classic FPS crosshair center screen.
@@ -18,6 +18,7 @@ public class vp_SimpleCrosshair : MonoBehaviour
 	// crosshair texture
 	public Texture m_ImageCrosshair = null;
 
+	public bool Hide = false;					// use this if you want to hide the crosshair without disabling it (crosshair needs to be enabled for interaction to work)
 	public bool HideOnFirstPersonZoom = true;
 	public bool HideOnDeath = true;
 	
@@ -65,6 +66,9 @@ public class vp_SimpleCrosshair : MonoBehaviour
 	{
 
 		if (m_ImageCrosshair == null)
+			return;
+
+		if (Hide)
 			return;
 
 		if(HideOnFirstPersonZoom && m_Player.Zoom.Active && m_Player.IsFirstPerson.Get())

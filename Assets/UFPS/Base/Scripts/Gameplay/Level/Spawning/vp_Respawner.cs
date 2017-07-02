@@ -1,9 +1,9 @@
 ﻿/////////////////////////////////////////////////////////////////////////////////
 //
 //	vp_Respawner.cs
-//	© VisionPunk. All Rights Reserved.
-//	https://twitter.com/VisionPunk
-//	http://www.visionpunk.com
+//	© Opsive. All Rights Reserved.
+//	https://twitter.com/Opsive
+//	http://www.opsive.com
 //
 //	description:	this script allows a gameobject to respawn in the same position,
 //					or at random, tagged vp_SpawnPoints after its 'Die' method has
@@ -15,6 +15,10 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System;
+
+#if UNITY_5_4_OR_NEWER
+using UnityEngine.SceneManagement;
+#endif
 
 [System.Serializable]
 public class vp_Respawner : MonoBehaviour
@@ -55,8 +59,6 @@ public class vp_Respawner : MonoBehaviour
 	protected Vector3 m_InitialPosition = Vector3.zero;		// initial position detected and used for respawn
 	protected Quaternion m_InitialRotation;		// initial rotation detected and used for respawn
 	protected vp_Placement Placement = new vp_Placement();
-	protected Transform m_Transform = null;
-	protected AudioSource m_Audio = null;
 
 	protected bool m_IsInitialSpawnOnAwake = false;
 
@@ -86,6 +88,54 @@ public class vp_Respawner : MonoBehaviour
 		}
 	}
 
+	protected Transform m_Transform = null;
+	public Transform Transform
+	{
+		get
+		{
+			if (m_Transform == null)
+				m_Transform = transform;
+			return m_Transform;
+		}
+	}
+
+	protected AudioSource m_Audio = null;
+	protected AudioSource Audio
+	{
+		get
+		{
+			if (m_Audio == null)
+			{
+				m_Audio = GetComponent<AudioSource>();
+				if (m_Audio == null)
+					m_Audio = gameObject.AddComponent<AudioSource>();
+			}
+			return m_Audio;
+		}
+	}
+
+	protected Collider m_Collider = null;
+	protected Collider Collider
+	{
+		get
+		{
+			if (m_Collider == null)
+				m_Collider = GetComponent<Collider>();
+			return m_Collider;
+		}
+	}
+
+	protected Rigidbody m_Rigidbody = null;
+	protected Rigidbody Rigidbody
+	{
+		get
+		{
+			if (m_Rigidbody == null)
+				m_Rigidbody = GetComponent<Rigidbody>();
+			return m_Rigidbody;
+		}
+	}
+
 
 	/// <summary>
 	/// 
@@ -93,11 +143,8 @@ public class vp_Respawner : MonoBehaviour
 	protected virtual void Awake()
 	{
 
-		m_Transform = transform;
-		m_Audio = GetComponent<AudioSource>();
-
-		Placement.Position = m_InitialPosition = m_Transform.position;
-		Placement.Rotation = m_InitialRotation = m_Transform.rotation;
+		Placement.Position = m_InitialPosition = Transform.position;
+		Placement.Rotation = m_InitialRotation = Transform.rotation;
 
 		if (m_SpawnMode == SpawnMode.SamePosition)
 			SpawnPointTag = "";
@@ -118,8 +165,12 @@ public class vp_Respawner : MonoBehaviour
 	protected virtual void OnEnable()
 	{
 
-		if ((GetComponent<Collider>() != null) && !Instances.ContainsValue(this))
-			Instances.Add(GetComponent<Collider>(), this);
+#if UNITY_5_4_OR_NEWER
+		SceneManager.sceneLoaded += OnLevelLoad;
+#endif
+
+		if ((Collider != null) && !Instances.ContainsValue(this))
+			Instances.Add(Collider, this);
 
 	}
 
@@ -129,6 +180,11 @@ public class vp_Respawner : MonoBehaviour
 	/// </summary>
 	protected virtual void OnDisable()
 	{
+
+#if UNITY_5_4_OR_NEWER
+		SceneManager.sceneLoaded -= OnLevelLoad;
+#endif
+
 	}
 
 
@@ -141,10 +197,10 @@ public class vp_Respawner : MonoBehaviour
 		if (!m_IsInitialSpawnOnAwake)
 		{
 
-			if (m_Audio != null)
+			if (Audio != null)
 			{
-				m_Audio.pitch = Time.timeScale;
-				m_Audio.PlayOneShot(SpawnSound);
+				Audio.pitch = Time.timeScale;
+				Audio.PlayOneShot(SpawnSound);
 			}
 
 			// spawn effects gameobjects
@@ -153,7 +209,7 @@ public class vp_Respawner : MonoBehaviour
 				foreach (GameObject fx in SpawnFXPrefabs)
 				{
 					if (fx != null)
-						vp_Utility.Instantiate(fx, m_Transform.position, m_Transform.rotation);
+						vp_Utility.Instantiate(fx, Transform.position, Transform.rotation);
 				}
 			}
 		}
@@ -290,7 +346,7 @@ public class vp_Respawner : MonoBehaviour
 		SpawnFX();
 
 		// in multiplayer, send a message to the network system if we're the master / host
-		if (vp_Gameplay.isMultiplayer && vp_Gameplay.isMaster)
+		if (vp_Gameplay.IsMultiplayer && vp_Gameplay.IsMaster)
 		{
 			vp_GlobalEvent<Transform, vp_Placement>.Send("TransmitRespawn", transform.root, Placement);
 		}
@@ -317,13 +373,13 @@ public class vp_Respawner : MonoBehaviour
 		if (!Application.isPlaying)
 			return;
 
-		m_Transform.position = Placement.Position;
-		m_Transform.rotation = Placement.Rotation;	// TEST: evaluating why this was removed in 1.4.7
+		Transform.position = Placement.Position;
+		Transform.rotation = Placement.Rotation;
 
-		if (GetComponent<Rigidbody>() != null && !GetComponent<Rigidbody>().isKinematic)
+		if (Rigidbody != null && !Rigidbody.isKinematic)
 		{
-			GetComponent<Rigidbody>().angularVelocity = Vector3.zero;
-			GetComponent<Rigidbody>().velocity = Vector3.zero;
+			Rigidbody.angularVelocity = Vector3.zero;
+			Rigidbody.velocity = Vector3.zero;
 		}
 
 	}
@@ -386,7 +442,11 @@ public class vp_Respawner : MonoBehaviour
 	/// <summary>
 	/// resets the cache of colliders and damagehandlers on level load
 	/// </summary>
+#if UNITY_5_4_OR_NEWER
+	protected void OnLevelLoad(Scene scene, LoadSceneMode mode)
+#else
 	protected void OnLevelWasLoaded()
+#endif
 	{
 
 		Instances.Clear();
